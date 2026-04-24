@@ -1,11 +1,13 @@
 # most important rule
 hado ghir i9tira7at bash tb9a lkhdma smooth w mandy3osh lw9t f tkharbi9
 -> u can break rules if it feels right
+
 # quick info
-- production branch is called **production**, send PRs to it
+- main (production) branch is called **main**, send PRs to it
 - **clangd** for formatting, **clangd-tidy** for linting (config files present)
 - linux and macos are the targeted platforms
 - Makefile compiles `*.cpp` found in `src/`
+
 # notes
 - use github issues whenever possible
 - try not to block other's work
@@ -40,3 +42,31 @@ double calculateArea(double width, double height) {
 }
 ```
 
+# Logging
+- each topic/category has it's own logger for ease of toggling on/off
+- each logger has levels
+- logger implementation and loggers can be found at `src/shared/logger.hpp`
+- to declare= a new logger add the following: (replace Category with your category, e.g: http, cgi ...)
+```CPP
+#ifdef LOG_Category
+typedef ActiveLogger CategoryLogger;
+#else
+typedef QuietLogger CategoryLogger;
+#endif
+```
+- to use in code decalre a logger (preferably global scope) e.g:
+```CPP
+CoreLogger coreLogger("TCP", CoreLogger::WARN);
+```
+- you can use the logger in code, e.g:
+```CPP
+coreLogger.debug("msg");
+coreLogger.info("msg");
+coreLogger.warn("msg");
+coreLogger.error("msg");
+```
+
+- to activate the logger make sure to build with `make CPPFLAGS+="-DLOG_Category"`
+- you can activate multiple loggers `-DLOG_1 -DLOG_2` 
+- you can change log level by chaiging it in logger constructor, using a high category will suppress lower ones; e.g: changing logger level to WARN will suppress info and debug logs (no need to comment them in code) 
+  **DEBUG < INFO < WARN < ERROR**

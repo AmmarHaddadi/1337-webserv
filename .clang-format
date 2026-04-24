@@ -1,5 +1,4 @@
-IndentWidth: 4    # Set to the number of spaces for indentation if using spaces (e.g., 4)
-TabWidth: 4       # Set to the tab width if using tabs
-UseTab: Always    # Forces clangd to use tabs instead of spaces
-ColumnLimit: 80
-
+IndentWidth: 4 # Set to the number of spaces for indentation if using spaces (e.g., 4)
+TabWidth: 4    # Set to the tab width if using tabs
+UseTab: Always # Forces clangd to use tabs instead of spaces
+ColumnLimit: 100
