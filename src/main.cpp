@@ -1,6 +1,8 @@
 #include "main.hpp"
+#include "../header/Request.hpp"
 
 CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
+
 
 int main() {
 	int listenerFd = setupListener(8080);

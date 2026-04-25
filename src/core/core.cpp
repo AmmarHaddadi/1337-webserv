@@ -41,7 +41,7 @@ int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen) {
 // fak l macos
 #else
 	coreLogger.debug("macos detected");
-	int newSocket = accept(mainFd, (struct sockaddr *)&addr, (socklen_t *)&addrLen);
+	int newSocket = accept(mainFd, addr, addrLen);
 	if (newSocket == -1) {
 		coreLogger.warn("failed to accept new connection");
 		return -1;
@@ -51,6 +51,7 @@ int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen) {
 		return 1;
 	}
 
+	return newSocket;
 #endif
 }
 
