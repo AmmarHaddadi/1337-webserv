@@ -95,6 +95,7 @@ int main() {
 				closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
 			}
 		}
+
 	}
 
 	close(listenerFd);

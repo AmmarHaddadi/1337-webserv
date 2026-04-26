@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+using namespace std;
 class Request {
 private:
   std::string buffer;
