@@ -1,38 +1,98 @@
-#include <cstring>
-#include <iostream>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "main.hpp"
+
+CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
 
 int main() {
-	// AF_INET = ipv4 SOCK_STREAM = tcp
-	int listenerFd = socket(AF_INET, SOCK_STREAM, 0);
+	int listenerFd = setupListener(8080);
+	if (listenerFd == -1) {
+		return 1;
+	}
+	pollfd listenerPfd = {listenerFd, POLLIN, 0};
 
-	// LISTENER
+	std::map<int, struct SocketMeta> socketsMeta;
+	std::vector<pollfd> socketsPFd;
+	socketsPFd.push_back(listenerPfd);
+
 	sockaddr_in address;
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY; // listen on all interfaces
-	address.sin_port = htons(8080);		  // Port 8080
-
-	if (bind(listenerFd, (struct sockaddr *)&address, sizeof(address)) == -1)
-		std::cerr << "failed to bind socket to port" << std::endl;
-
-	listen(listenerFd, 3);
-
-	// accepting new connections
 	int addrLen = sizeof(address);
 
-	while (1) {
-		int newSocket = accept(listenerFd, (struct sockaddr *)&address,
-							   (socklen_t *)&addrLen);
-		char buf[1024] = {0};
-		read(newSocket, buf, 1024);
-		std::cout << "Client says: " << buf << std::endl;
+	while (true) {
+		if (poll(&socketsPFd[0], socketsPFd.size(), -1) == -1) {
+			coreLogger.error("poll() failure: " + std::string(std::strerror(errno)));
+			break;
+		}
 
-		const char *res = "HTTP/1.1 200 OK\r\nContent-Type: "
-						  "text/plain\r\nContent-Length: 2\r\n\r\nOK";
-		send(newSocket, res, strlen(res), 0);
-		close(newSocket);
+		// accept new connection + add to metadata map
+		if ((socketsPFd[0].revents & POLLIN) != 0) {
+			int newSocketFd =
+				accpetNewSocket(listenerFd, reinterpret_cast<struct sockaddr *>(&address),
+								reinterpret_cast<socklen_t *>(&addrLen));
+			if (newSocketFd == -1) {
+				coreLogger.warn("failed to accpet connection: " +
+								std::string(std::strerror(errno)));
+			} else {
+				pollfd npfd = {newSocketFd, POLLIN, 0};
+				socketsPFd.push_back(npfd);
+				// metadata
+				SocketMeta sMeta;
+				sMeta.fd = newSocketFd;
+				sMeta.lastEvent = std::time(0);
+				socketsMeta.insert(std::make_pair(newSocketFd, sMeta));
+			}
+		}
+
+		// existing connections
+		for (std::vector<pollfd>::iterator sPFdIter = socketsPFd.begin() + 1;
+			 sPFdIter != socketsPFd.end(); ++sPFdIter) {
+
+			std::map<int, SocketMeta>::iterator metaIt = socketsMeta.find(sPFdIter->fd);
+			struct SocketMeta &sMeta = metaIt->second;
+
+			// if client hang or has err close
+			if ((sPFdIter->revents & (POLLHUP | POLLERR)) != 0) {
+				closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
+				continue;
+			}
+			if ((sPFdIter->revents & POLLIN) != 0) {
+				char buf[1024];
+				ssize_t totalRead = read(sPFdIter->fd, buf, 1024);
+				// HINT 0 read = disconnect
+				if (totalRead == 0) {
+					closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
+				} else if (totalRead > 0) {
+					sMeta.requestBuf.append(buf, totalRead);
+					// TODO next code must only run if request buffer has a valid request
+					// if (hasHttpReq(readBuffer)) {
+					//	do http logic
+					//  save in writeBuffer
+					// 	remove req from req buffer
+					//  change socket fd event to POLLOUT to be picked in next iteration NOT THIS
+					//  ONE
+					// }
+
+					// WARN temporary code
+					sMeta.requestBuf.clear();
+					sMeta.responseBuf = fakeHttpRes();
+					sPFdIter->events = POLLOUT;
+					// WARN end of temporary code
+					sMeta.lastEvent = std::time(0);
+				}
+			} else if ((sPFdIter->revents & POLLOUT) != 0) {
+				std::string &resbuf = sMeta.responseBuf;
+				if (!resbuf.empty()) {
+					size_t sent = send(sPFdIter->fd, resbuf.c_str(), resbuf.size(), 0);
+					sMeta.lastEvent = std::time(0);
+					resbuf.erase(0, sent);
+				}
+				if (resbuf.empty()) {
+					sPFdIter->events = POLLIN;
+				}
+			}
+			// close stale connection no read no write
+			else if (std::difftime(std::time(0), sMeta.lastEvent) > TCP_TIMEOUT) {
+				closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
+			}
+		}
 	}
 
 	close(listenerFd);

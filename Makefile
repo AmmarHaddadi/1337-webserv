@@ -19,3 +19,35 @@ fclean: clean
 	rm -rf $(NAME)
 
 re : fclean all
+
+# checks code is formatted well else throw error
+format:
+	@printf "\033[33mChecking formatting...\033[0m\n"
+	@echo $(SRC) | xargs clang-format --dry-run --Werror
+	@printf "\033[32mFormatting is clean!\033[0m\n"
+
+# Lint Check: Uses bear to generate the database, then runs tidy in parallel
+# We use run-clang-tidy for speed.
+lint:
+	@printf "$(YELLOW)Linting...$(RESET) "
+	@# 1. Generate database silently
+	@$(MAKE) fclean > /dev/null 2>&1
+	@bear -- $(MAKE) all > /dev/null 2>&1
+	@# 2. Run Tidy silently. 
+	@# -quiet removes the "Enabled checks" list.
+	@# -use-color=1 ensures that if there ARE errors, they still look good.
+	@if run-clang-tidy -p . -header-filter='src/.*' -quiet -use-color=1 > lint_output.log 2>&1; then \
+		printf "$(GREEN)OK!$(RESET)\n"; \
+		rm -f lint_output.log; \
+	else \
+		printf "$(RED)FAILED$(RESET)\n"; \
+		cat lint_output.log; \
+		rm -f lint_output.log; \
+		exit 1; \
+	fi
+	@rm -f compile_commands.json
+
+# Check everything (Style + Logic)
+check: format lint
+
+.PHONY: all clean fclean re format lint check

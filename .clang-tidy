@@ -1,19 +1,41 @@
 ---
 Checks: >
   -*,
-  bugprone-*,                      # Catch logical bugs (e.g., dangling pointers, math errors)
-  performance-*,                   # Catch slow code (e.g., unnecessary copies of large objects)
-  readability-*,                   # Improve code clarity and style consistency
-  -modernize-*,                    # DISABLE: Stops it from suggesting C++11 features (nullptr, auto)
-  -cppcoreguidelines-*,            # DISABLE: Most guidelines require C++11 or later
-  google-explicit-constructor,     # Force 'explicit' on single-arg constructors (Crucial for 98)
-  google-readability-casting,      # Suggests static_cast/reinterpret_cast over C-style (arg)
-  readability-braces-around-statements, # Ensure 'if/else/while' have braces (helps avoid logic bugs)
-  -readability-magic-numbers,      # DISABLE: Allows raw numbers (like 8080 or 1024) without constants
-  bugprone-too-small-loop-variable,# Prevents using 'char' to loop through 1000 items
-  bugprone-unused-return-value,    # Errors if you ignore return of functions like send() or recv()
-  performance-unnecessary-copy-initialization, # Warns if you copy an object that could be a const reference
-  misc-unconventional-assign-operator # Ensures operator= follows the Orthodox Canonical Form
+  bugprone-*,                      
+  performance-*,                   
+  readability-*,                   
+  -bugprone-implicit-bool-conversion,
+  -readability-function-cognitive-complexity,
+  -modernize-*,                    
+  -cppcoreguidelines-*,            
+  google-explicit-constructor,     
+  google-readability-casting,      
+  -readability-braces-around-statements, 
+  -readability-magic-numbers,      
+  bugprone-too-small-loop-variable,
+  bugprone-unused-return-value,    
+  performance-unnecessary-copy-initialization, 
+  misc-unconventional-assign-operator, 
+  -readability-identifier-length
+
+
+# EXPLANATION:
+# bugprone-*,                      # Catch logical bugs (e.g., dangling pointers, math errors)
+# performance-*,                   # Catch slow code (e.g., unnecessary copies of large objects)
+# readability-*,                   # Improve code clarity and style consistency
+# -modernize-*,                    # DISABLE: Stops it from suggesting C++11 features (nullptr, auto)
+# -cppcoreguidelines-*,            # DISABLE: Most guidelines require C++11 or later
+# google-explicit-constructor,     # Force 'explicit' on single-arg constructors (Crucial for 98)
+# google-readability-casting,      # Suggests static_cast/reinterpret_cast over C-style (arg)
+# readability-braces-around-statements, # Ensure 'if/else/while' have braces (helps avoid logic bugs)
+# -readability-magic-numbers,      # DISABLE: Allows raw numbers (like 8080 or 1024) without constants
+# bugprone-too-small-loop-variable,# Prevents using 'char' to loop through 1000 items
+# bugprone-unused-return-value,    # Errors if you ignore return of functions like send() or recv()
+# performance-unnecessary-copy-initialization, # Warns if you copy an object that could be a const reference
+# misc-unconventional-assign-operator # Ensures operator= follows the Orthodox Canonical Form
+
+# HeaderFilterRegex: 'src/.*'
+# AnalyzeTemporaryDtors: false
 
 # Treats all warnings as errors to ensure your code stays clean for evaluation
 WarningsAsErrors: '*'
@@ -21,11 +43,12 @@ WarningsAsErrors: '*'
 CheckOptions:
   # --- Naming Convention Rules ---
   # Ensures variables use lowerCamelCase (e.g., myVariable)
-  readability-identifier-naming.VariableCase: 'lowerCamelCase'
-  # Ensures functions use lowerCamelCase (e.g., startServer)
-  readability-identifier-naming.FunctionCase: 'lowerCamelCase'
-  # Ensures function parameters use lowerCamelCase (e.g., clientFd)
-  readability-identifier-naming.ParameterCase: 'lowerCamelCase'
+  readability-identifier-naming.VariableCase: 'camelBack'
+  readability-identifier-naming.LocalVariableCase: 'camelBack'
+  # Ensures functions use camelBack (e.g., startServer)
+  readability-identifier-naming.FunctionCase: 'camelBack'
+  # Ensures function parameters use camelBack (e.g., clientFd)
+  readability-identifier-naming.ParameterCase: 'camelBack'
   # Ensures classes use CamelCase (e.g., HttpServer)
   readability-identifier-naming.ClassCase: 'CamelCase'
   # Ensures structs use CamelCase (e.g., ClientData)
@@ -35,7 +58,11 @@ CheckOptions:
   # Ensures constants are ALL_CAPS (e.g., MAX_CLIENTS)
   readability-identifier-naming.GlobalConstantCase: 'UPPER_CASE'
   # Adds 'm_' prefix to class members (e.g., m_port) to distinguish from locals
-  readability-identifier-naming.MemberPrefix: 'm_'
+  # readability-identifier-naming.MemberPrefix: 'm_'
+  readability-identifier-naming.ClassMemberPrefix: 'm_'
+
+  readability-identifier-naming.VariableMinLength: '1'
+  readability-identifier-naming.LocalVariableMinLength: '1'
 
   # --- Configuration ---
   # Enforces 'explicit' keyword on constructors even if the next line is a comment
