@@ -1,15 +1,26 @@
 #pragma once
 
+#include <cstring>
 #include <ctime>
 #include <fcntl.h>
+#include <iostream>
 #include <map>
+#include <netdb.h>
 #include <string>
 #include <sys/poll.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <vector>
+
+struct Listener {
+	std::string host;
+	std::string port;
+};
 
 struct SocketMeta {
 	int fd;
+	std::string port;
 	std::time_t lastEvent;
 	std::string requestBuf;
 	std::string responseBuf;
@@ -18,6 +29,6 @@ struct SocketMeta {
 // functions
 int setNonblock(int listenerFd);
 int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen);
-int setupListener(unsigned port);
-void closeDelSocket(std::vector<pollfd> &socketsPFd, std::vector<pollfd>::iterator &sPFdIter,
+int setupListener(struct Listener &l);
+void closeDelSocket(std::vector<pollfd> &socketsPFd, size_t sIdx,
 					std::map<int, struct SocketMeta> &socketsMeta);
