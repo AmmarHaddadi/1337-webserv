@@ -1,7 +1,9 @@
 #include "main.hpp"
-#include "../header/Request.hpp"
+#include "../header/Parser.hpp"
+#include "shared/logger.hpp"
 
 CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
+HttpReqLogger httpReqLogger("Http Req", HttpReqLogger::DEBUG); // NOLINT
 
 
 int main() {
@@ -73,6 +75,12 @@ int main() {
 					// }
 
 					// WARN temporary code
+					HttpRequest req = parserHttp(sMeta.requestBuf);
+					if(req.method == UNKNOWN)
+						continue;
+
+					printHttpRequest(req);
+					
 					sMeta.requestBuf.clear();
 					sMeta.responseBuf = fakeHttpRes();
 					sPFdIter->events = POLLOUT;

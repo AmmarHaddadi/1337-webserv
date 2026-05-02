@@ -27,3 +27,4 @@
 
 // EXTERNS
 extern CoreLogger coreLogger;
+extern HttpReqLogger httpReqLogger;

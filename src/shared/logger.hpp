@@ -54,3 +54,9 @@ typedef ActiveLogger CoreLogger;
 #else
 typedef QuietLogger CoreLogger;
 #endif
+
+#ifdef LOG_HTTP_REQ
+typedef ActiveLogger HttpReqLogger;
+#else
+typedef QuietLogger HttpReqLogger;
+#endif
