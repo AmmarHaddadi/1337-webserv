@@ -13,22 +13,39 @@ int setNonblock(int listenerFd) {
 
 // @brief setup main listener socket used to accept new connections
 // @return -1 on error or the fd of listener
-int setupListener(unsigned port) {
+// NOTE "0.0.0.0" is * for IPV4, "127.0.0.1" = localhost
+int setupListener(struct Listener &l) {
+	// AF_INET = ipv4, SOCK_STREAM = TCP
 	int listenerFd = socket(AF_INET, SOCK_STREAM, 0);
+	if (listenerFd == -1)
+		return -1;
 	if (setNonblock(listenerFd) == -1) {
 		std::cerr << "failed to make socket non blocking" << '\n';
 		return -1;
 	}
 
-	sockaddr_in address;
-	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = INADDR_ANY; // listen on all interfaces
-	address.sin_port = htons(port);		  // Port 8080
+	// transforming host and port to machine form
+	// getaddrinfo is used to generate the struct sockaddr
+	struct addrinfo *res;
+	struct addrinfo hints;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = 0;
 
-	if (bind(listenerFd, reinterpret_cast<struct sockaddr *>(&address), sizeof(address)) == -1) {
-		std::cerr << "failed to bind socket to port" << '\n';
+	if (getaddrinfo(l.host.c_str(), l.port.c_str(), &hints, &res) != 0)
+		return -1;
+
+	// This tells the OS “I know this port was recently used, let me reuse it anyway.”
+	int opt = 1;
+	setsockopt(listenerFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+
+	if (bind(listenerFd, res->ai_addr, res->ai_addrlen) == -1) {
+		coreLogger.error("Failed to bind socket to " + l.host + ":" + l.port);
+		freeaddrinfo(res);
 		return -1;
 	}
+	freeaddrinfo(res);
 	if (listen(listenerFd, 3) == -1)
 		return -1;
 	return listenerFd;
@@ -41,7 +58,7 @@ int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen) {
 // fak l macos
 #else
 	coreLogger.debug("macos detected");
-	int newSocket = accept(mainFd, (struct sockaddr *)&addr, (socklen_t *)&addrLen);
+	int newSocket = accept(mainFd, addr, addrLen);
 	if (newSocket == -1) {
 		coreLogger.warn("failed to accept new connection");
 		return -1;
@@ -50,18 +67,16 @@ int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen) {
 		coreLogger.warn("failed to make socket non blocking");
 		return 1;
 	}
-
+	return newSocket;
 #endif
 }
 
-// @brief closes a scoket, removes is from scoketPFd vector and metadata array, meta iterator
-// decremenets to before current so loop re increments
-// WARN SIDE EFFECT: sPFdIter decrements
-void closeDelSocket(std::vector<pollfd> &socketsPFd, std::vector<pollfd>::iterator &sPFdIter,
+// @brief closes a scoket, removes is from scoketPFd vector and metadata array
+void closeDelSocket(std::vector<pollfd> &socketsPFd, size_t sIdx,
 					std::map<int, struct SocketMeta> &socketsMeta) {
-	int fd = sPFdIter->fd;
-	close(fd);
-	socketsMeta.erase(fd);
-	sPFdIter = socketsPFd.erase(sPFdIter); // returns next iterator
-	--sPFdIter;							   // loop will increment again
+	std::vector<pollfd>::iterator sPFd =
+		socketsPFd.begin() + static_cast<std::vector<pollfd>::difference_type>(sIdx);
+	close(sPFd->fd);
+	socketsMeta.erase(sPFd->fd);
+	socketsPFd.erase(sPFd);
 }
