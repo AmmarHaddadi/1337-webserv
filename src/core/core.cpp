@@ -67,6 +67,7 @@ int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen) {
 		coreLogger.warn("failed to make socket non blocking");
 		return 1;
 	}
+	return newSocket;
 #endif
 }
 
