@@ -14,6 +14,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
+#include "../header/Parser.hpp"
 
 // how many seconds to keep a stale connection before killing it
 #define TCP_TIMEOUT 5

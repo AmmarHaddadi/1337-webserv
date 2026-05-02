@@ -1,7 +1,4 @@
-#include "../header/Parser.hpp"
-#include "shared/logger.hpp"
-#include <ostream>
-#include "main.hpp"
+#include "../main.hpp"
 
 HttpRequest parserHttp(const std::string &buf) {
 	HttpRequest request;

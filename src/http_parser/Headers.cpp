@@ -1,4 +1,4 @@
-#include "../header/Parser.hpp"
+#include "../main.hpp"
 
 void parseHeaders(const std::string &headerSection, HttpRequest &request) {
 	

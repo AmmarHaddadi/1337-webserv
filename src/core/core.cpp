@@ -25,7 +25,7 @@ int setupListener(unsigned port) {
 	address.sin_addr.s_addr = INADDR_ANY; // listen on all interfaces
 	address.sin_port = htons(port);		  // Port 8080
 
-	if (bind(listenerFd, reinterpret_cast<struct sockaddr *>(&address), sizeof(address)) == -1) {
+	if (::bind(listenerFd, reinterpret_cast<struct sockaddr *>(&address), sizeof(address)) == -1) {
 		std::cerr << "failed to bind socket to port" << '\n';
 		return -1;
 	}
