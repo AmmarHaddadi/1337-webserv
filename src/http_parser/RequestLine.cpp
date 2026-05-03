@@ -31,6 +31,7 @@ HttpRequest parseRequestLine(const std::string &line) {
 		request.path = path;
 	}
 	
+	
 	request.version = version;
 	
 	return request;

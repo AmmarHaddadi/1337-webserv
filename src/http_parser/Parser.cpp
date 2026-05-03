@@ -35,6 +35,7 @@ HttpRequest parserHttp(std::string &buf) {
 	parseBody(bodySection, request);
 
 	request.status = COMPLETE;
+	buf.clear();
 	return request;
 }
 

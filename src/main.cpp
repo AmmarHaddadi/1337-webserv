@@ -79,7 +79,7 @@ int main() {
 
 					printHttpRequest(req);
 					
-					sMeta.requestBuf.clear();
+					// sMeta.requestBuf.clear();
 					sMeta.responseBuf = fakeHttpRes();
 					sPFdIter->events = POLLOUT;
 					// WARN end of temporary code
