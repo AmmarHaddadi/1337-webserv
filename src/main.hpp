@@ -2,6 +2,7 @@
 #include "core/core.hpp"
 #include "shared/logger.hpp"
 #include "utils.hpp"
+#include <cerrno>
 #include <cstddef>
 #include <cstring>
 #include <ctime>

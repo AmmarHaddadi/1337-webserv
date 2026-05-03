@@ -11,6 +11,7 @@ Checks: >
   google-explicit-constructor,     
   google-readability-casting,      
   -readability-braces-around-statements, 
+  -readability-inconsistent-ifelse-braces,
   -readability-magic-numbers,      
   bugprone-too-small-loop-variable,
   bugprone-unused-return-value,    
