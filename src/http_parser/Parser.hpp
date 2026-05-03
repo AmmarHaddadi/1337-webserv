@@ -1,5 +1,4 @@
-#ifndef PARSER_HPP
-#define PARSER_HPP
+#pragma once
 
 #include <string>
 #include <map>
@@ -8,19 +7,28 @@
 
 using namespace std;
 
-enum Method {
+enum GetMethod {
 	GET,
 	POST,
 	DELETE,
+	FALSE,
 	UNKNOWN
+};
+
+enum GetStatus {
+	COMPLETE,
+	INCOMPLETE,
+	BAD_REQ
 };
 
 struct HttpRequest {
 
-	Method method;
+	GetMethod method;
 	std::string path;
 	std::string query;
 	std::string version;
+	GetStatus status;
+	
 
 	std::map<std::string, std::string> headers;
 
@@ -28,7 +36,7 @@ struct HttpRequest {
 
 };
 
-HttpRequest parserHttp(const std::string &buf);
+HttpRequest parserHttp(std::string &buf);
 
 HttpRequest parseRequestLine(const std::string &line);
 void parseHeaders(const std::string &headerSection, HttpRequest &request);
@@ -37,4 +45,3 @@ void parseBody(const std::string &bodySection, HttpRequest &request);
 // Print function to display parsed request
 void printHttpRequest(const HttpRequest &request);
 
-#endif

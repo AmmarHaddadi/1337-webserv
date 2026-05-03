@@ -18,6 +18,9 @@ HttpRequest parseRequestLine(const std::string &line) {
 		request.method = POST;
 	} else if (methodStr == "DELETE") {
 		request.method = DELETE;
+	}else {
+		request.method = FALSE;
+		return request;
 	}
 	
 	size_t queryPos = path.find('?');

@@ -1,6 +1,4 @@
 #include "main.hpp"
-#include "../header/Parser.hpp"
-#include "shared/logger.hpp"
 
 CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
 HttpReqLogger httpReqLogger("Http Req", HttpReqLogger::DEBUG); // NOLINT
