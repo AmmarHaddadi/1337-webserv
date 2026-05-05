@@ -35,7 +35,11 @@ HttpRequest parserHttp(std::string &buf) {
 	parseBody(bodySection, request);
 
 	request.status = COMPLETE;
-	buf.clear();
+	size_t consumedBytes = bodyStart + 4 + request.body.size();
+	if (consumedBytes > buf.size()) {
+		consumedBytes = buf.size();
+	}
+	buf.erase(0, consumedBytes);
 	return request;
 }
 
