@@ -22,7 +22,11 @@ void parseHeaders(const std::string &headerSection, HttpRequest &request) {
 		size_t colonPos = line.find(':');
 		if (colonPos != std::string::npos) {
 			std::string key = line.substr(0, colonPos);
-			std::string value = line.substr(colonPos + 2); 
+			size_t valueStart = colonPos + 1;
+			while (valueStart < line.size() && (line[valueStart] == ' ' || line[valueStart] == '\t')) {
+				++valueStart;
+			}
+			std::string value = (valueStart < line.size()) ? line.substr(valueStart) : "";
 			request.headers[key] = value;
 		}
 		
