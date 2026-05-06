@@ -6,15 +6,15 @@
 #include <sstream>
 
 
-enum GetMethod {
+enum HttpMethod {
 	GET,
 	POST,
 	DELETE,
-	FALSE,
+	INVALID,
 	UNKNOWN
 };
 
-enum GetStatus {
+enum HttpStatus {
 	COMPLETE,
 	INCOMPLETE,
 	BAD_REQ
@@ -22,11 +22,11 @@ enum GetStatus {
 
 struct HttpRequest {
 
-	GetMethod method;
+	HttpMethod method;
 	std::string path;
 	std::string query;
 	std::string version;
-	GetStatus status;
+	HttpStatus status;
 	
 
 	std::map<std::string, std::string> headers;

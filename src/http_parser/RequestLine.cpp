@@ -1,4 +1,5 @@
 #include "../main.hpp"
+#include "Parser.hpp"
 
 
 HttpRequest parseRequestLine(const std::string &line) {
@@ -19,7 +20,7 @@ HttpRequest parseRequestLine(const std::string &line) {
 	} else if (methodStr == "DELETE") {
 		request.method = DELETE;
 	}else {
-		request.method = FALSE;
+		request.method = INVALID;
 		return request;
 	}
 	
@@ -31,7 +32,7 @@ HttpRequest parseRequestLine(const std::string &line) {
 		request.path = path;
 	}
 	
-	
+
 	request.version = version;
 	
 	return request;

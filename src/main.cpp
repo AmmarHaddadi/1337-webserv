@@ -1,8 +1,8 @@
 #include "main.hpp"
+#include "http_parser/Parser.hpp"
 
-CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
+CoreLogger coreLogger("Core", CoreLogger::DEBUG);			   // NOLINT
 HttpReqLogger httpReqLogger("Http Req", HttpReqLogger::DEBUG); // NOLINT
-
 
 int main() {
 	int listenerFd = setupListener(8080);
@@ -73,13 +73,17 @@ int main() {
 					// }
 
 					// WARN temporary code
-					HttpRequest req = parserHttp(sMeta.requestBuf);
-					if(req.method == UNKNOWN)
-						continue;
 
+					// HTTP PARSING
+					HttpRequest req = parserHttp(sMeta.requestBuf);
+					if (req.method == INVALID) {
+						sMeta.requestBuf.clear();
+						closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
+						continue;
+					}
 					printHttpRequest(req);
-					
-					// sMeta.requestBuf.clear();
+
+					sMeta.requestBuf.clear();
 					sMeta.responseBuf = fakeHttpRes();
 					sPFdIter->events = POLLOUT;
 					// WARN end of temporary code
@@ -101,7 +105,6 @@ int main() {
 				closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
 			}
 		}
-
 	}
 
 	close(listenerFd);

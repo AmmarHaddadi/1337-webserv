@@ -1,5 +1,6 @@
 #include "../main.hpp"
 
+
 HttpRequest parserHttp(std::string &buf) {
 	HttpRequest request;
 	request.method = UNKNOWN;
@@ -27,7 +28,7 @@ HttpRequest parserHttp(std::string &buf) {
 	std::string headersToParse = headerSection.substr(requestLineEnd + 2);
 
 	request = parseRequestLine(requestLineToParse);
-	if (request.method == FALSE) {
+	if (request.method == INVALID) {
 		request.status = BAD_REQ;
 		return request;
 	}
@@ -35,11 +36,11 @@ HttpRequest parserHttp(std::string &buf) {
 	parseBody(bodySection, request);
 
 	request.status = COMPLETE;
+
 	size_t consumedBytes = bodyStart + 4 + request.body.size();
-	if (consumedBytes > buf.size()) {
-		consumedBytes = buf.size();
-	}
+	consumedBytes = std::min(consumedBytes, buf.size());
 	buf.erase(0, consumedBytes);
+
 	return request;
 }
 
@@ -64,8 +65,8 @@ void printHttpRequest(const HttpRequest &request) {
 	case UNKNOWN:
 		oss << "UNKNOWN" << '\n';
 		break;
-	case FALSE:
-		oss << "FALSE" << '\n';
+	case INVALID:
+		oss << "INVALID" << '\n';
 		break;
 	}
 
