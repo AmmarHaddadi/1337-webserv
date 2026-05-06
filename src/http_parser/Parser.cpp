@@ -20,6 +20,7 @@ HttpRequest parserHttp(std::string &buf) {
 	size_t requestLineEnd = headerSection.find("\r\n");
 	if (requestLineEnd == std::string::npos) {
 		std::cout << "Invalid HTTP request (no request line found)" << '\n';
+		request.status = BAD_REQ;
 		return request;
 	}
 

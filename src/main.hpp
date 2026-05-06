@@ -14,7 +14,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
-#include "http_parser/Parser.hpp"
 #include <algorithm>
 
 // how many seconds to keep a stale connection before killing it
