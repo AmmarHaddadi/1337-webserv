@@ -75,17 +75,22 @@ int main() {
 					// WARN temporary code
 
 					// HTTP PARSING
+					
 					HttpRequest req = parserHttp(sMeta.requestBuf);
-					if (req.method == INVALID) {
-						sMeta.requestBuf.clear();
+					printHttpRequest(req);
+					if (req.status == BAD_REQ) {
 						closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
 						continue;
 					}
+					if (req.status == INCOMPLETE) {
+						continue;
+					}
+					if (req.status == COMPLETE) {
+						sMeta.responseBuf = fakeHttpRes();
+						sPFdIter->events = POLLOUT;
+					}
 					printHttpRequest(req);
 
-					sMeta.requestBuf.clear();
-					sMeta.responseBuf = fakeHttpRes();
-					sPFdIter->events = POLLOUT;
 					// WARN end of temporary code
 					sMeta.lastEvent = std::time(0);
 				}

@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <vector>
 #include <algorithm>
-
+#include "./http_parser/Parser.hpp"
 // how many seconds to keep a stale connection before killing it
 #define TCP_TIMEOUT 5
 // how many connection request to keep in queue

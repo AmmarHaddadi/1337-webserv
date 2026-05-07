@@ -3,12 +3,10 @@
 
 HttpRequest parserHttp(std::string &buf) {
 	HttpRequest request;
-	request.method = UNKNOWN;
 
 	size_t bodyStart = buf.find("\r\n\r\n");
 
 	if (bodyStart == std::string::npos) {
-		std::cout << "Incomplete HTTP request (no body separator found)" << '\n';
 		request.status = INCOMPLETE;
 		return request;
 	}
@@ -19,7 +17,6 @@ HttpRequest parserHttp(std::string &buf) {
 
 	size_t requestLineEnd = headerSection.find("\r\n");
 	if (requestLineEnd == std::string::npos) {
-		std::cout << "Invalid HTTP request (no request line found)" << '\n';
 		request.status = BAD_REQ;
 		return request;
 	}
@@ -62,9 +59,6 @@ void printHttpRequest(const HttpRequest &request) {
 		break;
 	case DELETE:
 		oss << "DELETE" << '\n';
-		break;
-	case UNKNOWN:
-		oss << "UNKNOWN" << '\n';
 		break;
 	case INVALID:
 		oss << "INVALID" << '\n';

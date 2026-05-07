@@ -10,8 +10,7 @@ enum HttpMethod {
 	GET,
 	POST,
 	DELETE,
-	INVALID,
-	UNKNOWN
+	INVALID
 };
 
 enum HttpStatus {
