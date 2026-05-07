@@ -1,20 +1,23 @@
 #include "main.hpp"
+#include "cfg/cfg.hpp"
+#include <exception>
 
-CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
-
-int main() {
-	// WARN temp code: to be replaced with actual config
-	// NOTE  vector must be const
-	std::vector<struct Listener> listeners;
-	struct Listener a = {"0.0.0.0", "8080"};
-	struct Listener b = {"127.0.0.1", "9090"};
-	listeners.push_back(a);
-	listeners.push_back(b);
-	// WARN end of temp code
+int main(int ac, char **av) {
+	std::string cfgFilePath = ac > 2 ? av[1] : "server.conf";
+	std::vector<Config::ServerConfig> scv;
+	try {
+		std::vector<Config::KindVal> tokens = Config::Lexer::tokenize(cfgFilePath);
+		Config::Parser parser(tokens);
+		scv = parser.parse();
+		Config::Checker::check(scv);
+	} catch (std::exception &e) {
+		cfgLogger.error(e.what());
+		return 1;
+	}
 
 	std::vector<pollfd> socketsPFd;
-	for (size_t l = 0; l < listeners.size(); ++l) {
-		int listenerFd = setupListener(listeners[l]);
+	for (size_t sIdx = 0; sIdx < scv.size(); ++sIdx) {
+		int listenerFd = setupListener(scv[sIdx].host, scv[sIdx].port);
 		if (listenerFd == -1) {
 			return 1;
 		}
@@ -34,7 +37,7 @@ int main() {
 		}
 
 		// accept new connections + add to metadata map
-		for (size_t p = 0; p < listeners.size(); p++) {
+		for (size_t p = 0; p < scv.size(); p++) {
 			if ((socketsPFd[p].revents & POLLIN) != 0) {
 				int newSocketFd =
 					accpetNewSocket(socketsPFd[p].fd, reinterpret_cast<struct sockaddr *>(&address),
@@ -49,14 +52,14 @@ int main() {
 					SocketMeta newSocketMeta;
 					newSocketMeta.fd = newSocketFd;
 					newSocketMeta.lastEvent = std::time(0);
-					newSocketMeta.port = listeners[p].port;
+					newSocketMeta.port = scv[p].port;
 					socketsMeta.insert(std::make_pair(newSocketFd, newSocketMeta));
 				}
 			}
 		}
 
 		// existing connections
-		for (size_t sIdx = listeners.size(); sIdx < socketsPFd.size(); ++sIdx) {
+		for (size_t sIdx = scv.size(); sIdx < socketsPFd.size(); ++sIdx) {
 			pollfd &socketPFd = socketsPFd[sIdx];
 			struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
 
@@ -86,7 +89,7 @@ int main() {
 
 					// WARN temporary code
 					sMeta.requestBuf.clear();
-					sMeta.responseBuf = fakeHttpRes();
+					sMeta.responseBuf = Utils::fakeHttpRes();
 					socketPFd.events = POLLOUT;
 					// WARN end of temporary code
 					sMeta.lastEvent = std::time(0);

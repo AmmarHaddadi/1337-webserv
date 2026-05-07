@@ -54,3 +54,9 @@ typedef ActiveLogger CoreLogger;
 #else
 typedef QuietLogger CoreLogger;
 #endif
+
+#ifdef LOG_CFG
+typedef ActiveLogger CfgLogger;
+#else
+typedef QuietLogger CfgLogger;
+#endif

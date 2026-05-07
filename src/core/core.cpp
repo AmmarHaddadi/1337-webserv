@@ -14,7 +14,7 @@ int setNonblock(int listenerFd) {
 // @brief setup main listener socket used to accept new connections
 // @return -1 on error or the fd of listener
 // NOTE "0.0.0.0" is * for IPV4, "127.0.0.1" = localhost
-int setupListener(struct Listener &l) {
+int setupListener(const std::string &host, const std::string &port) {
 	// AF_INET = ipv4, SOCK_STREAM = TCP
 	int listenerFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (listenerFd == -1)
@@ -33,7 +33,7 @@ int setupListener(struct Listener &l) {
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = 0;
 
-	if (getaddrinfo(l.host.c_str(), l.port.c_str(), &hints, &res) != 0)
+	if (getaddrinfo(host.c_str(), port.c_str(), &hints, &res) != 0)
 		return -1;
 
 	// This tells the OS “I know this port was recently used, let me reuse it anyway.”
@@ -41,7 +41,7 @@ int setupListener(struct Listener &l) {
 	setsockopt(listenerFd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
 	if (bind(listenerFd, res->ai_addr, res->ai_addrlen) == -1) {
-		coreLogger.error("Failed to bind socket to " + l.host + ":" + l.port);
+		coreLogger.error("Failed to bind socket to " + host + ":" + port);
 		freeaddrinfo(res);
 		return -1;
 	}
@@ -52,10 +52,8 @@ int setupListener(struct Listener &l) {
 }
 
 int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen) {
-// biba linoks
 #ifdef __linux__
 	return accept4(mainFd, addr, addrLen, SOCK_NONBLOCK);
-// fak l macos
 #else
 	coreLogger.debug("macos detected");
 	int newSocket = accept(mainFd, addr, addrLen);
@@ -65,8 +63,9 @@ int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen) {
 	}
 	if (setNonblock(newSocket) == -1) {
 		coreLogger.warn("failed to make socket non blocking");
-		return 1;
+		return -1;
 	}
+	return newSocket;
 #endif
 }
 

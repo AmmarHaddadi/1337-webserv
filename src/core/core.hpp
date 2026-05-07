@@ -13,11 +13,6 @@
 #include <unistd.h>
 #include <vector>
 
-struct Listener {
-	std::string host;
-	std::string port;
-};
-
 struct SocketMeta {
 	int fd;
 	std::string port;
@@ -29,6 +24,6 @@ struct SocketMeta {
 // functions
 int setNonblock(int listenerFd);
 int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen);
-int setupListener(struct Listener &l);
+int setupListener(const std::string &host, const std::string &port);
 void closeDelSocket(std::vector<pollfd> &socketsPFd, size_t sIdx,
 					std::map<int, struct SocketMeta> &socketsMeta);

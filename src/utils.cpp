@@ -1,6 +1,14 @@
 #include "main.hpp"
+#include <algorithm>
+#include <cctype>
+#include <string>
 
-std::string fakeHttpRes() {
+CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
+CfgLogger cfgLogger("CFG", CfgLogger::DEBUG);	  // NOLINT
+
+using namespace Utils;
+
+std::string Utils::fakeHttpRes() {
 	std::string html = "<!DOCTYPE HTML>\n"
 					   "<html lang=\"en\">\n"
 					   "<head>\n"
@@ -26,4 +34,24 @@ std::string fakeHttpRes() {
 		<< html;
 
 	return oss.str();
+}
+
+std::vector<std::string> Utils::split(const std::string &s, char delimiter) {
+	std::vector<std::string> result;
+	std::istringstream iss(s);
+	std::string token;
+
+	while (std::getline(iss, token, delimiter)) { // NOLINT
+		result.push_back(token);
+	}
+	return result;
+}
+
+bool Utils::isAllNum(std::string &s) {
+	if (s.empty())
+		return false;
+	for (size_t i = 0; i < s.size(); i++)
+		if (std::isdigit(static_cast<unsigned char>(s[i])) == 0)
+			return false;
+	return true;
 }
