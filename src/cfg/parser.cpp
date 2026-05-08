@@ -12,7 +12,7 @@ using namespace Config;
 KindVal &Parser::peek(int offset) {
 	if (m_pos + offset >= m_kvv.size())
 		return m_kvv.back();
-	return m_kvv[m_pos];
+	return m_kvv[m_pos + offset];
 }
 
 // @brief returns current and advanced
@@ -53,9 +53,11 @@ void Parser::skipNewLines() {
 // throws on error
 void Parser::parseAddress(const KindVal &kv, ServerConfig &sc) {
 	std::vector<std::string> hostPort = Utils::split(kv.val, ':');
-	if (hostPort.empty() || hostPort.size() > 2)
-		throw std::runtime_error("bad <address>");
+	if (hostPort.empty() || hostPort.size() != 2)
+		throw std::runtime_error("bad <address>: " + kv.val);
 	sc.host = hostPort[0].empty() ? "0.0.0.0" : hostPort[0]; //["host", "port"]
+	if (!Utils::isAllNum(hostPort[1]))
+		throw std::runtime_error("bad <address> port (" + hostPort[1] + ") must be all numbers");
 	sc.port = hostPort[1];
 }
 
@@ -126,7 +128,7 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 	}
 
 	else if (directive.val == "default_file") {
-		if (std::find(rc.allowedMethods.begin(), rc.allowedMethods.end(), "GET") !=
+		if (std::find(rc.allowedMethods.begin(), rc.allowedMethods.end(), "GET") ==
 			rc.allowedMethods.end()) {
 			rc.allowedMethods.push_back("GET");
 		}
@@ -135,7 +137,7 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 	}
 
 	else if (directive.val == "upload_enabled") {
-		if (std::find(rc.allowedMethods.begin(), rc.allowedMethods.end(), "POST") !=
+		if (std::find(rc.allowedMethods.begin(), rc.allowedMethods.end(), "POST") ==
 			rc.allowedMethods.end()) {
 			rc.allowedMethods.push_back("POST");
 		}
@@ -157,6 +159,10 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 	}
 
 	else if (directive.val == "file_server") {
+		if (std::find(rc.allowedMethods.begin(), rc.allowedMethods.end(), "GET") ==
+			rc.allowedMethods.end()) {
+			rc.allowedMethods.push_back("GET");
+		}
 		rc.fileServer = true;
 		if (peek().kind == WORD) {
 			if (peek().val != "browse")
@@ -167,7 +173,7 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 	}
 
 	else {
-		throw std::runtime_error("unknow route directive: " + directive.val);
+		throw std::runtime_error("unknown route directive" + directive.val);
 	}
 	expect(NEW_LINE, "new line after directive");
 }

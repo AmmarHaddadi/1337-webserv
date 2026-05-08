@@ -4,6 +4,12 @@
 
 This project uses a small, Caddyfile-inspired configuration format to define one or more HTTP servers and optional per-route behavior (custom roots, uploads, redirects, etc).
 
+By default the server looks for a `server.conf` in CWD, to use a custom file pass it as param
+```bash
+./webser path/to/file.conf
+```
+***note**: it doesn't need to end in a .conf*
+
 ---
 
 ## 1) Syntax
@@ -110,6 +116,7 @@ root <path>
 
 Notes:
  - must be absolute path.
+ - must not end with `/`.
 
 
 
@@ -136,7 +143,7 @@ error_page <code> <path>
 - **Required:** no  
 - **Default:** built-in webserv error pages
 - `<code>` is the status code relevant to the page 
-- `<path>` is a path **relative to the server root** that will be served on errors.
+- `<path>` is a path **relative to the server root** that will be served on errors (must not start with `/`)
 
 Example:
 ```caddyfile
@@ -262,13 +269,13 @@ file_server [browse]
 
 Examples:
 ```caddyfile
-hande /xyz {
+handle /xyz {
     file_server
 }
 ```
 
 ```caddyfile
-hande /xyz {
+handle /xyz {
     file_server browse
 }
 ```
@@ -284,7 +291,7 @@ Notes:
 ```caddyfile
 :8080 {
     root /www
-    error_page 404.html
+    error_page 404 404.html
     max_body_sz 1024
 
     handle /upload {
@@ -296,20 +303,3 @@ Notes:
     }
 }
 ```
-
----
-
-## 4) Parser implementation notes (3-day target)
-
-Recommended approach:
-1. Tokenize input (handle `{`, `}`, comments `#`, whitespace).
-2. Parse server blocks: `<address> "{" ... "}"`
-3. Inside a server:
-   - parse directives
-   - parse `handle <path> { ... }`
-4. After parsing: apply defaults + validate required fields.
-
-Keep v1 strict:
-- error on unknown keywords
-- error on missing required values
-- include line numbers in error messages

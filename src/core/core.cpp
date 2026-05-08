@@ -20,7 +20,8 @@ int setupListener(const std::string &host, const std::string &port) {
 	if (listenerFd == -1)
 		return -1;
 	if (setNonblock(listenerFd) == -1) {
-		std::cerr << "failed to make socket non blocking" << '\n';
+		coreLogger.error("fatal error: failed to make listener socket non blocking");
+		close(listenerFd);
 		return -1;
 	}
 
@@ -42,12 +43,15 @@ int setupListener(const std::string &host, const std::string &port) {
 
 	if (bind(listenerFd, res->ai_addr, res->ai_addrlen) == -1) {
 		coreLogger.error("Failed to bind socket to " + host + ":" + port);
+		close(listenerFd);
 		freeaddrinfo(res);
 		return -1;
 	}
 	freeaddrinfo(res);
-	if (listen(listenerFd, 3) == -1)
+	if (listen(listenerFd, 3) == -1) {
+		close(listenerFd);
 		return -1;
+	}
 	return listenerFd;
 }
 

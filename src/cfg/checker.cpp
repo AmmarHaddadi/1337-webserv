@@ -24,7 +24,7 @@ void checkRoot(std::string &root) {
 		throw std::runtime_error("no read access for " + root);
 }
 
-void checkErrorPages(std::map<int, std::string> &eps) {
+void checkErrorPages(std::string &serverRoot, std::map<int, std::string> &eps) {
 	for (std::map<int, std::string>::iterator it = eps.begin(); it != eps.end(); it++) {
 		std::ostringstream oss;
 		oss << it->first;
@@ -32,21 +32,21 @@ void checkErrorPages(std::map<int, std::string> &eps) {
 			throw std::runtime_error("bad error_page code " + oss.str());
 		if (it->second.empty())
 			throw std::runtime_error("bad error_page path for code " + oss.str());
-		if (access(it->second.c_str(), R_OK) != 0)
+		if (access((serverRoot + "/" + it->second).c_str(), R_OK) != 0)
 			throw std::runtime_error("no read access for the error_page file " + it->second);
 	}
 }
 
 void checkMaxBodySz(size_t sz) {
 	// yeah error msgs are shit you're suppoed to know the line and which server etc blabla
-	if (sz > 1048576)
-		cfgLogger.warn("your max body size is above 1GB");
-	else if (sz < 1024)
-		cfgLogger.warn("your max body size is below the recommended 1MB");
-	else if (sz == 0)
+	if (sz == 0)
 		// throw std::runtime_error("request body size can't be 0");
 		// the user knows best ¯\_(ツ)_/¯
 		cfgLogger.warn("maximum request body size is 0");
+	else if (sz > 102400)
+		cfgLogger.warn("your max body size is above 100MB");
+	else if (sz < 1024)
+		cfgLogger.warn("your max body size is below the recommended 1MB");
 }
 
 // route checks
@@ -70,7 +70,7 @@ void checkUploadPath(std::string &up) {
 	if ((st.st_mode & S_IFMT) != S_IFDIR) // man 7 inode
 		throw std::runtime_error(up + " is not a directory and can't be used as upload path");
 	if (access(up.c_str(), W_OK) != 0)
-		throw std::runtime_error("no read access for upload path " + up);
+		throw std::runtime_error("no write access for upload path " + up);
 }
 
 void checkRedirect(int redirectCode) {
@@ -82,11 +82,13 @@ void checkRedirect(int redirectCode) {
 
 // @brief throws if smtn feels
 void Checker::check(const std::vector<ServerConfig> &scv) {
+	if (scv.empty())
+		throw std::runtime_error("config file has no servers");
 	for (size_t i = 0; i < scv.size(); i++) {
 		ServerConfig sc = scv[i];
 		// bad host and port will fail
 		checkRoot(sc.root);
-		checkErrorPages(sc.errorPages);
+		checkErrorPages(sc.root, sc.errorPages);
 		checkMaxBodySz(sc.maxBodySize);
 
 		// checking routes

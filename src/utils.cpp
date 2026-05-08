@@ -41,13 +41,13 @@ std::vector<std::string> Utils::split(const std::string &s, char delimiter) {
 	std::istringstream iss(s);
 	std::string token;
 
-	while (std::getline(iss, token, delimiter)) { // NOLINT
+	while (std::getline(iss, token, delimiter)) // NOLINT
 		result.push_back(token);
-	}
+
 	return result;
 }
 
-bool Utils::isAllNum(std::string &s) {
+bool Utils::isAllNum(const std::string &s) {
 	if (s.empty())
 		return false;
 	for (size_t i = 0; i < s.size(); i++)

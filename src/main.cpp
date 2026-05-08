@@ -1,9 +1,14 @@
 #include "main.hpp"
 #include "cfg/cfg.hpp"
 #include <exception>
+#include <iostream>
 
 int main(int ac, char **av) {
-	std::string cfgFilePath = ac > 2 ? av[1] : "server.conf";
+	if (ac > 2) {
+		std::cerr << "Error: only supported param is an optional <path/to/file.conf> \n";
+		return 1;
+	}
+	std::string cfgFilePath = ac > 1 ? av[1] : "server.conf";
 	std::vector<Config::ServerConfig> scv;
 	try {
 		std::vector<Config::KindVal> tokens = Config::Lexer::tokenize(cfgFilePath);
@@ -18,9 +23,8 @@ int main(int ac, char **av) {
 	std::vector<pollfd> socketsPFd;
 	for (size_t sIdx = 0; sIdx < scv.size(); ++sIdx) {
 		int listenerFd = setupListener(scv[sIdx].host, scv[sIdx].port);
-		if (listenerFd == -1) {
+		if (listenerFd == -1)
 			return 1;
-		}
 		pollfd listenerPfd = {listenerFd, POLLIN, 0};
 		socketsPFd.push_back(listenerPfd);
 	}
@@ -97,7 +101,7 @@ int main(int ac, char **av) {
 			} else if ((socketPFd.revents & POLLOUT) != 0) {
 				std::string &resbuf = sMeta.responseBuf;
 				if (!resbuf.empty()) {
-					size_t sent = send(socketPFd.fd, resbuf.c_str(), resbuf.size(), 0);
+					ssize_t sent = send(socketPFd.fd, resbuf.c_str(), resbuf.size(), 0);
 					sMeta.lastEvent = std::time(0);
 					resbuf.erase(0, sent);
 				}
