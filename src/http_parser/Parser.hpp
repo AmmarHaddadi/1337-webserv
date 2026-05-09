@@ -26,6 +26,7 @@ struct HttpRequest {
 	std::string query;
 	std::string version;
 	HttpStatus status;
+	std::string tmp_buf;
 	
 
 	std::map<std::string, std::string> headers;

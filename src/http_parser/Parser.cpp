@@ -1,19 +1,18 @@
 #include "../main.hpp"
 
-
 HttpRequest parserHttp(std::string &buf) {
+
 	HttpRequest request;
 
 	size_t bodyStart = buf.find("\r\n\r\n");
 
 	if (bodyStart == std::string::npos) {
+		// cut for header
 		request.status = INCOMPLETE;
 		return request;
 	}
 
 	std::string headerSection = buf.substr(0, bodyStart);
-
-	std::string bodySection = buf.substr(bodyStart + 4);
 
 	size_t requestLineEnd = headerSection.find("\r\n");
 	if (requestLineEnd == std::string::npos) {
@@ -31,13 +30,34 @@ HttpRequest parserHttp(std::string &buf) {
 		return request;
 	}
 	parseHeaders(headersToParse, request);
-	parseBody(bodySection, request);
 
-	request.status = COMPLETE;
+	if (request.headers.find("Content-Length") != request.headers.end()) {
+		size_t contentLength = std::strtoul(request.headers["Content-Length"].c_str(), NULL, 10);
 
-	size_t consumedBytes = bodyStart + 4 + request.body.size();
-	consumedBytes = std::min(consumedBytes, buf.size());
-	buf.erase(0, consumedBytes);
+		std::string currentBody = buf.substr(bodyStart + 4);
+
+		if (currentBody.size() < contentLength) {
+			request.status = INCOMPLETE;
+			return request;
+		}
+
+		parseBody(currentBody.substr(0, contentLength), request);
+		request.status = COMPLETE;
+	} else {
+		request.status = COMPLETE;
+	}
+
+
+if (request.status == COMPLETE) {
+    size_t headerLength = bodyStart + 4;
+    size_t bodyLength = request.body.size(); 
+    
+    size_t totalConsumed = headerLength + bodyLength;
+    
+    if (totalConsumed <= buf.size()) {
+        buf.erase(0, totalConsumed);
+    }
+}
 
 	return request;
 }

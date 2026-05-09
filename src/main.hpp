@@ -16,6 +16,8 @@
 #include <vector>
 #include <algorithm>
 #include "./http_parser/Parser.hpp"
+#include <cstdlib>
+
 // how many seconds to keep a stale connection before killing it
 #define TCP_TIMEOUT 5
 // how many connection request to keep in queue

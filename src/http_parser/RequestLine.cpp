@@ -4,7 +4,6 @@
 
 HttpRequest parseRequestLine(const std::string &line) {
 	HttpRequest request;
-	request.method = UNKNOWN;
 	
 	std::istringstream iss(line);
 	std::string methodStr;

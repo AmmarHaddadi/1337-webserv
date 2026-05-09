@@ -32,7 +32,7 @@ lint:
 	@printf "$(YELLOW)Linting...$(RESET) "
 	@# 1. Generate database silently
 	@$(MAKE) fclean > /dev/null 2>&1
-	@bear -- $(MAKE) all > /dev/null 2>&1
+# 	@bear -- $(MAKE) all > /dev/null 2>&1
 	@# 2. Run Tidy silently. 
 	@# -quiet removes the "Enabled checks" list.
 	@# -use-color=1 ensures that if there ARE errors, they still look good.
