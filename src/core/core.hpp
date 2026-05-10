@@ -1,9 +1,9 @@
 #pragma once
 
+#include "../cfg/cfg.hpp"
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
-#include <iostream>
 #include <map>
 #include <netdb.h>
 #include <string>
@@ -12,11 +12,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
-
-struct Listener {
-	std::string host;
-	std::string port;
-};
 
 struct SocketMeta {
 	int fd;
@@ -28,7 +23,13 @@ struct SocketMeta {
 
 // functions
 int setNonblock(int listenerFd);
-int accpetNewSocket(int mainFd, struct sockaddr *addr, socklen_t *addrLen);
-int setupListener(struct Listener &l);
-void closeDelSocket(std::vector<pollfd> &socketsPFd, size_t sIdx,
+int accpetNewSocket(int mainFd);
+int setupListener(const std::string &host, const std::string &port);
+void closeDelSocket(std::vector<pollfd> &sockets, size_t sIdx,
 					std::map<int, struct SocketMeta> &socketsMeta);
+void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerConfig> &servers,
+					  std::map<int, struct SocketMeta> &socketsMeta);
+int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+			  size_t &sIdx);
+void handleRes(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+			   size_t &sIdx);

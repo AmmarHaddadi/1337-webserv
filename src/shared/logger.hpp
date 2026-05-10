@@ -60,3 +60,9 @@ typedef ActiveLogger HttpReqLogger;
 #else
 typedef QuietLogger HttpReqLogger;
 #endif
+
+#ifdef LOG_CFG
+typedef ActiveLogger CfgLogger;
+#else
+typedef QuietLogger CfgLogger;
+#endif
