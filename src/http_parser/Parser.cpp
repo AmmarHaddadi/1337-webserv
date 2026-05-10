@@ -47,17 +47,16 @@ HttpRequest parserHttp(std::string &buf) {
 		request.status = COMPLETE;
 	}
 
+	if (request.status == COMPLETE) {
+		size_t headerLength = bodyStart + 4;
+		size_t bodyLength = request.body.size();
 
-if (request.status == COMPLETE) {
-    size_t headerLength = bodyStart + 4;
-    size_t bodyLength = request.body.size(); 
-    
-    size_t totalConsumed = headerLength + bodyLength;
-    
-    if (totalConsumed <= buf.size()) {
-        buf.erase(0, totalConsumed);
-    }
-}
+		size_t totalConsumed = headerLength + bodyLength;
+
+		if (totalConsumed <= buf.size()) {
+			buf.erase(0, totalConsumed);
+		}
+	}
 
 	return request;
 }

@@ -45,7 +45,7 @@ int main() {
 
 		// existing connections
 		for (std::vector<pollfd>::iterator sPFdIter = socketsPFd.begin() + 1;
-			sPFdIter != socketsPFd.end(); ++sPFdIter) {
+			 sPFdIter != socketsPFd.end(); ++sPFdIter) {
 
 			std::map<int, SocketMeta>::iterator metaIt = socketsMeta.find(sPFdIter->fd);
 			struct SocketMeta &sMeta = metaIt->second;
@@ -75,7 +75,7 @@ int main() {
 					// WARN temporary code
 
 					// HTTP PARSING
-					
+
 					HttpRequest req = parserHttp(sMeta.requestBuf);
 					if (req.status == BAD_REQ) {
 						closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
