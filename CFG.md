@@ -286,6 +286,29 @@ Notes:
 
 ---
 
+### 2.9 `cgi`
+**Scope:** route  
+**Syntax:**
+```caddyfile
+cgi <extension> <path>
+```
+
+- **Required:** no  
+- `<extension>` is the file extension (without a leading dot) to be handled by this runner (e.g., `py`, `php`)  
+- `<path>` is the absolute path to the interpreter/runner binary that will execute matching files (e.g., `/usr/bin/python3`). The file specified by `<path>` must have execute permissions.
+
+Example:
+```caddyfile
+handle / {
+    file_server browse
+    default_file index.html
+    methods GET
+    cgi py /usr/bin/python3
+}
+```
+
+---
+
 ## 3) Minimal complete example
 
 ```caddyfile

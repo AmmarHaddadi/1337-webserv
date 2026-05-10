@@ -62,9 +62,9 @@ void Parser::parseAddress(const KindVal &kv, ServerConfig &sc) {
 }
 
 void Parser::parseServerDirective(const KindVal &directive, ServerConfig &sc) {
-	std::ostringstream oss;
-	oss << directive.line << ":" << directive.col << "-> " << "`" << directive.val << "`" << "\n";
-	cfgLogger.debug("parsing: " + oss.str());
+	// std::ostringstream oss;
+	// oss << directive.line << ":" << directive.col << "-> " << "`" << directive.val << "`" <<
+	// "\n"; cfgLogger.debug("parsing: " + oss.str());
 
 	if (directive.val == "root") {
 		KindVal v = expect(WORD, "server root path");
@@ -101,15 +101,13 @@ void Parser::parseServerDirective(const KindVal &directive, ServerConfig &sc) {
 	} else {
 		std::ostringstream oss;
 		oss << directive.line << ":" << directive.col << "-> " << "`" << directive.val << "`";
-		// throw std::runtime_error("unknown directive" + directive.line + ":" +
-		// directive.col: " + directive.val);
 		throw std::runtime_error("unknown server directive: " + oss.str());
 	}
 	expect(NEW_LINE, "xnew line after directive");
 }
 
 void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteConfig &rc) {
-	cfgLogger.debug("parsing: " + directive.val);
+	// cfgLogger.debug("parsing: " + directive.val);
 
 	if (directive.val == "root") {
 		KindVal path = expect(WORD, "route root path");
@@ -117,7 +115,6 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 	}
 
 	else if (directive.val == "methods") {
-		// expect one value at least
 		KindVal m = expect(WORD, "one route method at least");
 		rc.allowedMethods.push_back(m.val);
 
@@ -142,10 +139,7 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 			rc.allowedMethods.push_back("POST");
 		}
 		rc.uploadEnabled = true;
-		// if (peek().kind == WORD)
 		rc.uploadPath = expect(WORD, "").val;
-		// else // todo remove
-		// 	rc.uploadPath = "/tmp/uploads";
 
 	}
 
@@ -172,8 +166,14 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 		}
 	}
 
+	else if (directive.val == "cgi") {
+		KindVal xt = expect(WORD, "<extension>");
+		KindVal runner = expect(WORD, "<path>");
+		rc.cgi[xt.val] = runner.val;
+	}
+
 	else {
-		throw std::runtime_error("unknown route directive" + directive.val);
+		throw std::runtime_error("unknown route directive: " + directive.val);
 	}
 	expect(NEW_LINE, "new line after directive");
 }

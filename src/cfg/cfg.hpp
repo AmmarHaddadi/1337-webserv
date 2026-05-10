@@ -35,6 +35,8 @@ class ServerConfig {
 
 		bool fileServer;
 		bool fileBrowser;
+
+		std::map<std::string, std::string> cgi; // extension : runner
 	};
 
 	std::string host;

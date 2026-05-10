@@ -80,6 +80,22 @@ void checkRedirect(int redirectCode) {
 		throw std::invalid_argument("bad redirection code");
 }
 
+void checkCGI(const std::map<std::string, std::string> &cgiMap) {
+	std::map<std::string, std::string>::const_iterator it = cgiMap.begin();
+
+	for (; it != cgiMap.end(); it++) {
+		// check it's a file in first place
+		struct stat st;
+		if (stat(it->second.c_str(), &st) != 0)
+			throw std::runtime_error("couldn't reach " + it->second);
+		if ((st.st_mode & S_IFMT) != S_IFREG)
+			throw std::runtime_error(it->second +
+									 " is not a file/binary and can't be used as cgi runner");
+		if (access(it->second.c_str(), X_OK) != 0)
+			throw std::runtime_error("no execution permission for cgi runner " + it->second);
+	}
+}
+
 // @brief throws if smtn feels
 void Checker::check(const std::vector<ServerConfig> &scv) {
 	if (scv.empty())
@@ -102,6 +118,7 @@ void Checker::check(const std::vector<ServerConfig> &scv) {
 				checkUploadPath(rc.uploadPath);
 			if (rc.hasRedirect)
 				checkRedirect(rc.redirectCode);
+			checkCGI(rc.cgi);
 		}
 	}
 }
