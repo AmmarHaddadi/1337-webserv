@@ -1,6 +1,8 @@
 #include "main.hpp"
+#include "http_parser/Parser.hpp"
 
-CoreLogger coreLogger("Core", CoreLogger::DEBUG); // NOLINT
+CoreLogger coreLogger("Core", CoreLogger::DEBUG);			   // NOLINT
+HttpReqLogger httpReqLogger("Http Req", HttpReqLogger::DEBUG); // NOLINT
 
 int main() {
 	// WARN temp code: to be replaced with actual config
@@ -75,19 +77,24 @@ int main() {
 					--sIdx;
 				} else if (totalRead > 0) {
 					sMeta.requestBuf.append(buf, totalRead);
-					// TODO next code must only run if request buffer has a valid request
-					// if (hasHttpReq(readBuffer)) {
-					//	do http logic
-					//  save in writeBuffer
-					// 	remove req from req buffer
-					//  change socket fd event to POLLOUT to be picked in next iteration NOT THIS
-					//  ONE
-					// }
+					// TODO next code must only run if request buffer has a valid reques
+					// HTTP PARSING
 
-					// WARN temporary code
-					sMeta.requestBuf.clear();
-					sMeta.responseBuf = fakeHttpRes();
-					socketPFd.events = POLLOUT;
+					HttpRequest req = parserHttp(sMeta.requestBuf);
+					if (req.status == BAD_REQ) {
+						closeDelSocket(socketsPFd, sPFdIter, socketsMeta);
+						continue;
+					}
+					if (req.status == INCOMPLETE) {
+						continue;
+					}
+					if (req.status == COMPLETE) {
+						sMeta.responseBuf = fakeHttpRes();
+						sPFdIter->events = POLLOUT;
+					}
+					printHttpRequest(req);
+
+
 					// WARN end of temporary code
 					sMeta.lastEvent = std::time(0);
 				}

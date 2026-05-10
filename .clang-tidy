@@ -18,7 +18,6 @@ Checks: >
   misc-unconventional-assign-operator, 
   -readability-identifier-length
 
-
 # EXPLANATION:
 # bugprone-*,                      # Catch logical bugs (e.g., dangling pointers, math errors)
 # performance-*,                   # Catch slow code (e.g., unnecessary copies of large objects)
