@@ -1,9 +1,12 @@
 #pragma once
 
+#include "./http_parser/Parser.hpp"
 #include "core/core.hpp"
 #include "shared/logger.hpp"
 #include "utils.hpp"
+#include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
@@ -15,12 +18,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
-#include <algorithm>
-#include "./http_parser/Parser.hpp"
-#include <cstdlib>
 
 // how many seconds to keep a stale connection before killing it
-#define TCP_TIMEOUT 5
+#define TCP_TIMEOUT 30
 // how many connection request to keep in queue
 // for a real server this must be very high
 #define CLIENT_QUEUE 10

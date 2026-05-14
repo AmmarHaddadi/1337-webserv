@@ -20,28 +20,30 @@ fclean: clean
 
 re : fclean all
 
+V ?= 0
+ifeq ($(V),1)
+  Q :=
+  REDIR :=
+else
+  Q := @
+  REDIR := > /dev/null 2>&1
+endif
+
 # checks code is formatted well else throw error
 format:
-	@printf "\033[33mChecking formatting...\033[0m\n"
-	@echo $(SRC) | xargs clang-format --dry-run --Werror
-	@printf "\033[32mFormatting is clean!\033[0m\n"
+	$(Q)echo "Checking formatting..."
+	$(Q)echo $(SRC) $(HDR) | xargs clang-format --dry-run --Werror
+	$(Q)echo "Formatting is clean"
 
-# We use run-clang-tidy for speed.
 lint:
-	@printf "$(YELLOW)Linting...$(RESET) "
-	@# Run clang-tidy directly on all source files.
-	@# Everything after '--' are the compiler flags needed to parse the files.
-	@if clang-tidy $(SRC) -header-filter='src/.*' -quiet -use-color=1 -- $(CPPFLAGS) > lint_output.log 2>&1; then \
-		printf "$(GREEN)OK!$(RESET)\n"; \
-		rm -f lint_output.log; \
+	$(Q)echo "Linting...\n"
+	$(Q)if clang-tidy $(SRC) -header-filter='src/.*' -quiet -use-color=1 -- $(CPPFLAGS) > lint_output.log 2>&1; then \
+		echo "Linting Good"; rm -f lint_output.log; \
 	else \
-		printf "$(RED)FAILED$(RESET)\n"; \
-		cat lint_output.log; \
-		rm -f lint_output.log; \
-		exit 1; \
+		echo "Linting Bad"; cat lint_output.log; rm -f lint_output.log; exit 1; \
 	fi
 
-# Check everything (Style + Logic)
+# Check everything (compile , format & lint)
 check: format lint
 
 .PHONY: all clean fclean re format lint check
