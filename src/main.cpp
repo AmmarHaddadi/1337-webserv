@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "cfg/cfg.hpp"
 #include "core/core.hpp"
+#include <cerrno>
 #include <exception>
 #include <iostream>
 

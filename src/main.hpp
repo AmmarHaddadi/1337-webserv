@@ -5,6 +5,7 @@
 #include "shared/logger.hpp"
 #include "utils.hpp"
 #include <algorithm>
+#include <cerrno>
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>

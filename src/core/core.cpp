@@ -1,5 +1,6 @@
 #include "../cfg/cfg.hpp"
 #include "../main.hpp"
+#include <cerrno>
 
 int setNonblock(int listenerFd) {
 	int flags = fcntl(listenerFd, F_GETFL, 0);

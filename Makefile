@@ -23,10 +23,8 @@ re : fclean all
 V ?= 0
 ifeq ($(V),1)
   Q :=
-  REDIR :=
 else
   Q := @
-  REDIR := > /dev/null 2>&1
 endif
 
 # checks code is formatted well else throw error
