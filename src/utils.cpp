@@ -1,5 +1,8 @@
+#include "http_parser/Parser.hpp"
 #include "main.hpp"
 #include <cctype>
+#include <fstream>
+#include <sstream>
 #include <string>
 
 CoreLogger coreLogger("Core", CoreLogger::DEBUG);			   // NOLINT
@@ -8,33 +11,64 @@ HttpReqLogger httpReqLogger("Http Req", HttpReqLogger::DEBUG); // NOLINT
 
 using namespace Utils;
 
-std::string Utils::fakeHttpRes() {
-	std::string html = "<!DOCTYPE HTML>\n"
-					   "<html lang=\"en\">\n"
-					   "<head>\n"
-					   "<meta charset=\"utf-8\">\n"
-					   "<style type=\"text/css\">:root { color-scheme: light dark; }</style>\n"
-					   "<title>fake html page</title>\n"
-					   "</head>\n"
-					   "<body>\n"
-					   "<h1>Big title</h1>\n"
-					   "<p>small text here lorem ipsum sadfjhsadf</p>"
-					   "</body>\n"
-					   "</html>";
+std::string Utils::generateErrorPage(int status) {
+	std::string body;
+	std::string msg;
+	std::string statusLine;
 
-	std::ostringstream oss;
-	// WARN end of temporary code
-	oss << "HTTP/1.1 200 OK\r\n"
-		<< "Server: webserv/1.0\r\n"
-		<< "Content-Type: text/html; charset=utf-8\r\n"
-		<< "Content-Length: " << html.length()
-		<< "\r\n"
-		// << "Connection: close\r\n"
-		<< "\r\n" // The critical empty line
-		<< html;
+	switch (status) {
+	case BAD_REQ:
+		msg = "Bad REQ";
+		statusLine = "HTTP/1.1 400 \r\n";
+		break;
+	case PAYLOAD_TOO_LARGE:
+		msg = "Payload Too Large";
+		statusLine = "HTTP/1.1 413 \r\n";
+		break;
+	default:
+		msg = "Not Implemented";
+		statusLine = "HTTP/1.1 501 \r\n";
+	}
 
-	return oss.str();
+	body = Utils::generateHtmlErrorPage(status, msg);
+
+	std::ostringstream response;
+	response << statusLine << "Content-Type: text/html\r\n"
+			 << "Content-Length: " << body.length() << "\r\n"
+			 << "Server: webserv/1.0\r\n"
+			 << "\r\n"
+			 << body;
+
+	return response.str();
 }
+
+std::string Utils::responseFile(HttpRequest &req) {
+	std::ifstream file(("/tmp" + req.path).c_str());
+	std::string body;
+	std::string statusLine;
+
+	if (!file.is_open()) {
+		statusLine = "HTTP/1.1 404 Not Found\r\n";
+		body = Utils::generateHtmlErrorPage(404, "Not Found :" + req.path);
+		req.status = NOT_FOUND;
+	} else {
+		std::stringstream buffer;
+		buffer << file.rdbuf();
+		body = buffer.str();
+		statusLine = "HTTP/1.1 200 OK\r\n";
+		req.status = COMPLETE;
+	}
+
+	std::ostringstream response;
+	response << statusLine << "Content-Type: text/html\r\n"
+			 << "Content-Length: " << body.length() << "\r\n"
+			 << "Server: webserv/1.0\r\n"
+			 << "\r\n"
+			 << body;
+
+	return response.str();
+}
+
 
 std::vector<std::string> Utils::split(const std::string &s, char delimiter) {
 	std::vector<std::string> result;
@@ -54,4 +88,17 @@ bool Utils::isAllNum(const std::string &s) {
 		if (std::isdigit(static_cast<unsigned char>(s[i])) == 0)
 			return false;
 	return true;
+}
+
+std::string Utils::generateHtmlErrorPage(int code, const std::string &msg) {
+	std::ostringstream oss;
+	oss << "<!DOCTYPE HTML>\n"
+		<< "<html>\n"
+		<< "<head><title>" << code << " " << msg << "</title></head>\n"
+		<< "<body style=\"font-family:sans-serif; text-align:center; padding-top:50px;\">\n"
+		<< "<h1>" << code << " " << msg << "</h1>\n"
+		<< "<hr><p>webserv/1.0 (1337_School)</p>\n"
+		<< "</body>\n"
+		<< "</html>";
+	return oss.str();
 }

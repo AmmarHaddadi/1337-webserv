@@ -28,6 +28,7 @@
 // struct serverSettings {
 // 	int tcpKeepAliveSeconds;
 // };
+void respond(SocketMeta &sMeta, HttpRequest &req) ;
 
 // EXTERNS
 extern CoreLogger coreLogger;

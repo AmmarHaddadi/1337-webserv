@@ -14,9 +14,13 @@ enum HttpMethod {
 };
 
 enum HttpStatus {
-	COMPLETE,
-	INCOMPLETE,
-	BAD_REQ
+	INCOMPLETE = 0,
+    COMPLETE = 200,
+    BAD_REQ = 400,
+	NOT_FOUND = 404,
+    METHOD_NOT_ALLOWED = 405,
+    PAYLOAD_TOO_LARGE = 413,
+    NOT_IMPLEMENTED = 501
 };
 
 struct HttpRequest {
@@ -35,7 +39,7 @@ struct HttpRequest {
 
 };
 
-HttpRequest parserHttp(std::string &buf);
+HttpRequest parserHttp(std::string &buf, size_t maxBodySize);
 
 HttpRequest parseRequestLine(const std::string &line);
 void parseHeaders(const std::string &headerSection, HttpRequest &request);

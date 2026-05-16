@@ -1,13 +1,12 @@
 #include "../main.hpp"
 
-HttpRequest parserHttp(std::string &buf) {
+HttpRequest parserHttp(std::string &buf, size_t maxBodySize) {
 
 	HttpRequest request;
 
 	size_t bodyStart = buf.find("\r\n\r\n");
 
 	if (bodyStart == std::string::npos) {
-		// cut for header
 		request.status = INCOMPLETE;
 		return request;
 	}
@@ -25,14 +24,22 @@ HttpRequest parserHttp(std::string &buf) {
 	std::string headersToParse = headerSection.substr(requestLineEnd + 2);
 
 	request = parseRequestLine(requestLineToParse);
+
 	if (request.method == INVALID) {
-		request.status = BAD_REQ;
-		return request;
-	}
+        request.status = NOT_IMPLEMENTED; 
+        return request;
+    }
+
 	parseHeaders(headersToParse, request);
 
 	if (request.headers.find("Content-Length") != request.headers.end()) {
 		size_t contentLength = std::strtoul(request.headers["Content-Length"].c_str(), NULL, 10);
+
+		if (contentLength > maxBodySize) {
+			std::cout << "PAYLOAD_TOO_LARGE = 413";
+            request.status = PAYLOAD_TOO_LARGE;
+            return request;
+        }
 
 		std::string currentBody = buf.substr(bodyStart + 4);
 

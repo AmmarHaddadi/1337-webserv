@@ -131,16 +131,20 @@ int handleReq(
 		sMeta.lastEvent = std::time(0);
 		sMeta.requestBuf.append(buf, totalRead);
 
-		HttpRequest req = parserHttp(sMeta.requestBuf);
-		if (req.status == BAD_REQ) {
-			closeDelSocket(sockets, sIdx, socketsMeta);
-			return 1; // continue
+		HttpRequest req = parserHttp(sMeta.requestBuf, 1024);
+
+		if (req.status == BAD_REQ || req.status == PAYLOAD_TOO_LARGE ||
+			req.status == NOT_IMPLEMENTED) {
+			sMeta.responseBuf = Utils::generateErrorPage(req.status);
+			socketPFd.events = POLLOUT;
+			// closeDelSocket(sockets, sIdx, socketsMeta);
+			// return 1;
 		}
 		if (req.status == INCOMPLETE) {
 			return 1; // continue
 		}
 		if (req.status == COMPLETE) {
-			sMeta.responseBuf = Utils::fakeHttpRes();
+			respond(sMeta,req);
 			socketPFd.events = POLLOUT;
 		}
 		printHttpRequest(req);
