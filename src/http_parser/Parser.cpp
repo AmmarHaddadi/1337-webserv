@@ -1,71 +1,77 @@
 #include "../main.hpp"
 
 HttpRequest parserHttp(std::string &buf, size_t maxBodySize) {
+    HttpRequest request;
+    request.status = COMPLETE;
 
-	HttpRequest request;
+    size_t firstLineEnd = buf.find('\n');
+    if (firstLineEnd != std::string::npos) {
+        if (firstLineEnd == 0 || buf[firstLineEnd - 1] != '\r') {
+            request.status = BAD_REQ;
+            buf.clear();
+            return request;
+        }
+    }
 
-	size_t bodyStart = buf.find("\r\n\r\n");
-
-	if (bodyStart == std::string::npos) {
-		request.status = INCOMPLETE;
-		return request;
-	}
-
-	std::string headerSection = buf.substr(0, bodyStart);
-
-	size_t requestLineEnd = headerSection.find("\r\n");
-	if (requestLineEnd == std::string::npos) {
-		request.status = BAD_REQ;
-		return request;
-	}
-
-	std::string requestLineToParse = headerSection.substr(0, requestLineEnd);
-
-	std::string headersToParse = headerSection.substr(requestLineEnd + 2);
-
-	request = parseRequestLine(requestLineToParse);
-
-	if (request.method == INVALID) {
-        request.status = NOT_IMPLEMENTED; 
+    size_t bodyStart = buf.find("\r\n\r\n");
+    if (bodyStart == std::string::npos) {
+        request.status = INCOMPLETE;
         return request;
     }
 
-	parseHeaders(headersToParse, request);
+    std::string headerSection = buf.substr(0, bodyStart);
+    size_t requestLineEnd = headerSection.find("\r\n");
+    if (requestLineEnd == std::string::npos) {
+        request.status = BAD_REQ;
+        buf.clear();
+        return request;
+    }
 
-	if (request.headers.find("Content-Length") != request.headers.end()) {
-		size_t contentLength = std::strtoul(request.headers["Content-Length"].c_str(), NULL, 10);
+    std::string requestLineToParse = headerSection.substr(0, requestLineEnd);
+    std::string headersToParse = headerSection.substr(requestLineEnd + 2);
 
-		if (contentLength > maxBodySize) {
-			std::cout << "PAYLOAD_TOO_LARGE = 413";
+    HttpRequest tempReq = parseRequestLine(requestLineToParse);
+    if (tempReq.method == INVALID) {
+        request.status = NOT_IMPLEMENTED; 
+        buf.clear();
+        return request;
+    }
+    
+    request.method = tempReq.method;
+    request.path = tempReq.path;
+    request.query = tempReq.query;
+    request.version = tempReq.version;
+
+    parseHeaders(headersToParse, request);
+
+    if (request.headers.find("Content-Length") != request.headers.end()) {
+        size_t contentLength = std::strtoul(request.headers["Content-Length"].c_str(), NULL, 10);
+
+        if (contentLength > maxBodySize) {
+            std::cout << "PAYLOAD_TOO_LARGE = 413\n";
             request.status = PAYLOAD_TOO_LARGE;
+            buf.clear(); 
             return request;
         }
 
-		std::string currentBody = buf.substr(bodyStart + 4);
+        std::string currentBody = buf.substr(bodyStart + 4);
+        if (currentBody.size() < contentLength) {
+            request.status = INCOMPLETE; 
+            return request;
+        }
 
-		if (currentBody.size() < contentLength) {
-			request.status = INCOMPLETE;
-			return request;
-		}
+        parseBody(currentBody.substr(0, contentLength), request);
+    }
 
-		parseBody(currentBody.substr(0, contentLength), request);
-		request.status = COMPLETE;
-	} else {
-		request.status = COMPLETE;
-	}
+    size_t headerLength = bodyStart + 4;
+    size_t bodyLength = request.body.size();
+    size_t totalConsumed = headerLength + bodyLength;
 
-	if (request.status == COMPLETE) {
-		size_t headerLength = bodyStart + 4;
-		size_t bodyLength = request.body.size();
+    if (totalConsumed <= buf.size()) {
+        buf.erase(0, totalConsumed);
+    }
 
-		size_t totalConsumed = headerLength + bodyLength;
-
-		if (totalConsumed <= buf.size()) {
-			buf.erase(0, totalConsumed);
-		}
-	}
-
-	return request;
+    return request;
 }
 
 // Print function to display parsed HTTP request
