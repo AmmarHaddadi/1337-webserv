@@ -48,7 +48,6 @@ HttpRequest parserHttp(std::string &buf, size_t maxBodySize) {
         size_t contentLength = std::strtoul(request.headers["Content-Length"].c_str(), NULL, 10);
 
         if (contentLength > maxBodySize) {
-            std::cout << "PAYLOAD_TOO_LARGE = 413\n";
             request.status = PAYLOAD_TOO_LARGE;
             buf.clear(); 
             return request;

@@ -62,13 +62,11 @@ std::string Utils::responseFile(HttpRequest &req) {
 	std::ostringstream response;
 	response << statusLine << "Content-Type: text/html\r\n"
 			 << "Content-Length: " << body.length() << "\r\n"
-			 << "Server: webserv/1.0\r\n"
 			 << "\r\n"
 			 << body;
 
 	return response.str();
 }
-
 
 std::vector<std::string> Utils::split(const std::string &s, char delimiter) {
 	std::vector<std::string> result;
@@ -94,11 +92,11 @@ std::string Utils::generateHtmlErrorPage(int code, const std::string &msg) {
 	std::ostringstream oss;
 	oss << "<!DOCTYPE HTML>\n"
 		<< "<html>\n"
-		<< "<head><title>" << code << " " << msg << "</title></head>\n"
+		<< "<head><title>" << code << " : " << msg << "</title></head>\n"
 		<< "<body style=\"font-family:sans-serif; text-align:center; padding-top:50px;\">\n"
-		<< "<h1>" << code << " " << msg << "</h1>\n"
-		<< "<hr><p>webserv/1.0 (1337_School)</p>\n"
+		<< "<h1>" << code << " : " << msg << "</h1>\n"
 		<< "</body>\n"
 		<< "</html>";
 	return oss.str();
 }
+
