@@ -2,6 +2,7 @@
 #include "cfg/cfg.hpp"
 #include "cgi/Cgi.hpp"
 #include "core/core.hpp"
+#include "cgi/Cgi.hpp"
 #include <exception>
 #include <iostream>
 

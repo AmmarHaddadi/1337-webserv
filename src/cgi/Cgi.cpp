@@ -1,24 +1,14 @@
-#include "Cgi.hpp"
+#include "cgi.hpp"
+#include "../shared/utils.hpp"
 
-Cgi::Cgi(std::map<std::string, std::string> &initCgiMap, HttpRequest &initStructRequest)
+using namespace CGI;
+
+Cgi::Cgi(std::map<std::string, std::string> &initCgiMap, http::HttpRequest &initStructRequest)
 	: cgiMap(initCgiMap), structRequest(initStructRequest) {
 	inPipe[0] = -1;
 	inPipe[1] = -1;
 	outPipe[0] = -1;
 	outPipe[1] = -1;
-}
-
-std::string Cgi::getRequestMethod(HttpMethod requestMethod) {
-	switch (requestMethod) {
-	case GET:
-		return "GET";
-	case POST:
-		return "POST";
-	case DELETE:
-		return "DELETE";
-	default:
-		return "INVALID";
-	}
 }
 
 void Cgi::closePipe() {
@@ -41,7 +31,6 @@ void Cgi::closePipe() {
 }
 
 std::vector<std::string> Cgi::buildEnvp() const {
-	std::map<std::string, std::string>::iterator it;
 	std::vector<std::string> envp;
 	std::ostringstream numberString;
 	std::string scriptName;
@@ -49,30 +38,13 @@ std::vector<std::string> Cgi::buildEnvp() const {
 
 	scriptName = structRequest.path.substr(pos + 1);
 	numberString << structRequest.body.length();
-	envp.push_back("REQUEST_METHOD=" + getRequestMethod(structRequest.method));
+	envp.push_back("REQUEST_METHOD=" + Utils::httpMethodToString(structRequest.method));
 	envp.push_back("QUERY_STRING=" + structRequest.query);
 	envp.push_back("CONTENT_LENGTH=" + numberString.str());
 	envp.push_back("SCRIPT_NAME=" + scriptName);
-	it = structRequest.headers.find("Accept");
-	if (it != structRequest.headers.end() && !it->second.empty())
-		envp.push_back("HTTP_ACCEPT=" + it->second);
-	it = structRequest.headers.find("Content-Type");
-	if (it != structRequest.headers.end() && !it->second.empty())
-		envp.push_back("CONTENT_TYPE=" + it->second);
-	it = structRequest.headers.find("Host");
-	if (it != structRequest.headers.end() && !it->second.empty()) {
-		std::string host = it->second;
-		size_t posOfPort = host.find(':');
-		std::string port = host.substr(posOfPort + 1);
-		envp.push_back("SERVER_PORT=" + port);
-		envp.push_back("HTTP_HOST=" + host.substr(0, posOfPort));
-	}
-	it = structRequest.headers.find("User-Agent");
-	if (it != structRequest.headers.end() && !it->second.empty())
-		envp.push_back("HTTP_USER_AGENT=" + it->second);
-	it = structRequest.headers.find("custhdr");
-	if (it != structRequest.headers.end() && !it->second.empty())
-		envp.push_back("HTTP_CUSTHDR=" + it->second);
+	for (std::map<std::string, std::string>::iterator it = structRequest.headers.begin();
+		 it != structRequest.headers.end(); it++)
+		envp.push_back(it->first + "=" + it->second);
 	return (envp);
 }
 
@@ -90,10 +62,10 @@ std::string Cgi::findRunner() const {
 	return (runnerScript);
 }
 
-std::string Cgi::executeCGI() {
+std::string Cgi::executeCGI(const std::string &root) {
 	std::string responseScript;
 	std::string runnerScript = findRunner();
-	std::string fixPath = "." + structRequest.path;
+	std::string fixPath = root + structRequest.path;
 	std::vector<std::string> helpBuildEnvp = buildEnvp();
 	char *argv[] = {
 		const_cast<char *>(runnerScript.c_str()),
