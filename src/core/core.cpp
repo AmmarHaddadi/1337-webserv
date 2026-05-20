@@ -128,16 +128,10 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 
 		HttpRequest req = parserHttp(sMeta.requestBuf, sMeta.server.maxBodySize);
 
-		// quit early for performance reasons
-		if (req.status == BAD_REQ || req.status == PAYLOAD_TOO_LARGE ||
-			req.status == NOT_IMPLEMENTED) {
-			sMeta.responseBuf = Utils::generateErrorPage(req.status);
-			socket.events = POLLOUT;
-		}
 		if (req.status == INCOMPLETE) {
 			return 1; // continue
 		}
-		if (req.status == COMPLETE) {
+		if (req.status != INCOMPLETE) {
 			respond(sMeta, req);
 			socket.events = POLLOUT;
 		}

@@ -11,56 +11,24 @@ HttpReqLogger httpReqLogger("Http Req", HttpReqLogger::DEBUG); // NOLINT
 
 using namespace Utils;
 
-std::string Utils::generateErrorPage(int status) {
+std::string Utils::responseFile(SocketMeta &sMeta, HttpRequest &req) {
+	std::ifstream file((sMeta.server.root + req.path).c_str());
 	std::string body;
-	std::string msg;
-	std::string statusLine;
 
-	switch (status) {
-	case BAD_REQ:
-		msg = "Bad REQ";
-		statusLine = "HTTP/1.1 400 \r\n";
-		break;
-	case PAYLOAD_TOO_LARGE:
-		msg = "Payload Too Large";
-		statusLine = "HTTP/1.1 413 \r\n";
-		break;
-	default:
-		msg = "Not Implemented";
-		statusLine = "HTTP/1.1 501 \r\n";
-	}
-
-	body = Utils::generateHtmlErrorPage(status, msg);
-
-	std::ostringstream response;
-	response << statusLine << "Content-Type: text/html\r\n"
-			 << "Content-Length: " << body.length() << "\r\n"
-			 << "Server: webserv/1.0\r\n"
-			 << "\r\n"
-			 << body;
-
-	return response.str();
-}
-
-std::string Utils::responseFile(HttpRequest &req) {
-	std::ifstream file(("/tmp" + req.path).c_str());
-	std::string body;
-	std::string statusLine;
-
-	if (!file.is_open()) {
-		statusLine = "HTTP/1.1 404 Not Found\r\n";
-		body = Utils::generateHtmlErrorPage(404, "Not Found :" + req.path);
-		req.status = NOT_FOUND;
-	} else {
+	if (req.status == BAD_REQ || req.status == PAYLOAD_TOO_LARGE || req.status == NOT_IMPLEMENTED)
+		body = Utils::generateHtmlErrorPage(req.status);
+	else if (!file.is_open())
+		body = Utils::generateHtmlErrorPage(NOT_FOUND);
+	else {
 		std::stringstream buffer;
 		buffer << file.rdbuf();
 		body = buffer.str();
-		statusLine = "HTTP/1.1 200 OK\r\n";
 		req.status = COMPLETE;
 	}
 
 	std::ostringstream response;
-	response << statusLine << "Content-Type: text/html\r\n"
+	response << "HTTP/1.1 " << req.status << " \r\n"
+			 << "Content-Type: text/html\r\n"
 			 << "Content-Length: " << body.length() << "\r\n"
 			 << "\r\n"
 			 << body;
@@ -88,7 +56,26 @@ bool Utils::isAllNum(const std::string &s) {
 	return true;
 }
 
-std::string Utils::generateHtmlErrorPage(int code, const std::string &msg) {
+std::string Utils::generateHtmlErrorPage(int code) {
+	std::string msg;
+
+	switch (code) {
+	case BAD_REQ:
+		msg = "Bad REQ";
+		break;
+	case PAYLOAD_TOO_LARGE:
+		msg = "Payload Too Large";
+		break;
+	case NOT_IMPLEMENTED:
+		msg = "Not Implemented";
+		break;
+	case NOT_FOUND:
+		msg = "Not Found";
+		break;
+	default:
+		msg = "ok";
+	}
+
 	std::ostringstream oss;
 	oss << "<!DOCTYPE HTML>\n"
 		<< "<html>\n"
@@ -99,4 +86,3 @@ std::string Utils::generateHtmlErrorPage(int code, const std::string &msg) {
 		<< "</html>";
 	return oss.str();
 }
-

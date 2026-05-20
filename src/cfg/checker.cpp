@@ -89,8 +89,8 @@ void checkCGI(const std::map<std::string, std::string> &cgiMap) {
 		if (stat(it->second.c_str(), &st) != 0)
 			throw std::runtime_error("couldn't reach " + it->second);
 		if ((st.st_mode & S_IFMT) != S_IFREG)
-			throw std::runtime_error(
-				it->second + " is not a file/binary and can't be used as cgi runner");
+			throw std::runtime_error(it->second +
+									 " is not a file/binary and can't be used as cgi runner");
 		if (access(it->second.c_str(), X_OK) != 0)
 			throw std::runtime_error("no execution permission for cgi runner " + it->second);
 	}
