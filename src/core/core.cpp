@@ -116,7 +116,7 @@ void acceptNewClients(
 // till next loop if all good and a response was written it returns 0 so the res is sent
 // @return 1 if should continue
 int handleReq(
-	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx) {
+	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx, std::vector<Config::ServerConfig> &servers) {
 	pollfd &socketPFd = sockets[sIdx];
 	struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
 
@@ -140,7 +140,7 @@ int handleReq(
 			return 1; // continue
 		}
 		if (req.status == COMPLETE) {
-			sMeta.responseBuf = Utils::fakeHttpRes();
+			sMeta.responseBuf = Utils::fakeHttpRes(servers, req);
 			socketPFd.events = POLLOUT;
 		}
 		printHttpRequest(req);

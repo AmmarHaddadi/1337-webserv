@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "cfg/cfg.hpp"
 #include "core/core.hpp"
+#include "cgi/Cgi.hpp"
 #include <exception>
 #include <iostream>
 
@@ -51,7 +52,7 @@ int main(int ac, char **av) {
 			}
 
 			if ((socketPFd.revents & POLLIN) != 0) {
-				if (handleReq(sockets, socketsMeta, sIdx) == 1)
+				if (handleReq(sockets, socketsMeta, sIdx, servers) == 1) // pass serverconfig::routeconfig map cgi and 
 					continue;
 
 			} else if ((socketPFd.revents & POLLOUT) != 0) {

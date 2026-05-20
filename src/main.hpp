@@ -17,6 +17,7 @@
 #include <vector>
 #include <algorithm>
 #include "./http_parser/Parser.hpp"
+#include "./cgi/Cgi.hpp"
 #include <cstdlib>
 
 // how many seconds to keep a stale connection before killing it
