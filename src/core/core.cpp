@@ -113,10 +113,17 @@ void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerCo
 // @brief takes references, treates incoming requests, if it's bad or incmplete it signals to skip
 // till next loop if all good and a response was written it returns 0 so the res is sent
 // @return 1 if should continue
+<<<<<<< HEAD
 int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
 			  size_t &sIdx) {
 	pollfd &socket = sockets[sIdx];
 	SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
+=======
+int handleReq(
+	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx, std::vector<Config::ServerConfig> &servers) {
+	pollfd &socketPFd = sockets[sIdx];
+	struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
+>>>>>>> f932f61 (update)
 
 	char buf[1024];
 	ssize_t totalRead = read(socket.fd, buf, 1024);

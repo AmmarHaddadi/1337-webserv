@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+#include <cerrno>
 
 extern CoreLogger coreLogger;
 struct SocketMeta {
@@ -36,6 +37,6 @@ void closeDelSocket(std::vector<pollfd> &sockets, size_t sIdx,
 void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerConfig> &servers,
 					  std::map<int, struct SocketMeta> &socketsMeta);
 int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
-			  size_t &sIdx);
+			  size_t &sIdx, std::vector<Config::ServerConfig> &servers);
 void handleRes(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
 			   size_t &sIdx);

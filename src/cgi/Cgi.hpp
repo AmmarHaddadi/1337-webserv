@@ -8,21 +8,23 @@
 #include <sys/wait.h>
 #include <vector>
 #include <map>
+#include <csignal>
+#include <exception>
 #include "../main.hpp"
 
 class   Cgi {
 	private:
-		std::map<std::string, std::string>	&cgiMap;
-		HttpRequest							&structRequest;
-		int									outPipe[2];
-		int									inPipe[2];
-		std::string					getRequestMethod( HttpMethod requestMethod ) const;
-		void						closePipe( void );
-		std::vector<std::string>	buildEnvp( void );
-		std::string					findRunner( void ) const;
+		std::map<std::string, std::string> &cgiMap;
+		HttpRequest &structRequest;
+		int outPipe[2];
+		int inPipe[2];
+		static std::string getRequestMethod(HttpMethod requestMethod);
+		void closePipe();
+		std::vector<std::string> buildEnvp() const;
+		std::string findRunner() const;
 
 	public:
-		Cgi( std::map<std::string, std::string> &initCgiMap, HttpRequest &initStructRequest );
-		~Cgi( );
-		std::string executeCGI( void );
+		Cgi(std::map<std::string, std::string> &initCgiMap, HttpRequest &initStructRequest);
+		~Cgi();
+		std::string executeCGI();
 };
