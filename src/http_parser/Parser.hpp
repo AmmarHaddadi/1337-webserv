@@ -1,23 +1,13 @@
 #pragma once
 
-#include <string>
-#include <map>
 #include <iostream>
+#include <map>
 #include <sstream>
+#include <string>
 
+enum HttpMethod { GET, POST, DELETE, INVALID };
 
-enum HttpMethod {
-	GET,
-	POST,
-	DELETE,
-	INVALID
-};
-
-enum HttpStatus {
-	COMPLETE,
-	INCOMPLETE,
-	BAD_REQ
-};
+enum HttpStatus { COMPLETE, INCOMPLETE, BAD_REQ };
 
 struct HttpRequest {
 
@@ -27,12 +17,10 @@ struct HttpRequest {
 	std::string version;
 	HttpStatus status;
 	std::string tmp_buf;
-	
 
 	std::map<std::string, std::string> headers;
 
 	std::string body;
-
 };
 
 HttpRequest parserHttp(std::string &buf);
@@ -43,4 +31,3 @@ void parseBody(const std::string &bodySection, HttpRequest &request);
 
 // Print function to display parsed request
 void printHttpRequest(const HttpRequest &request);
-

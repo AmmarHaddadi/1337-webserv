@@ -1,10 +1,10 @@
 #pragma once
 
+#include "./cfg/cfg.hpp"
+#include "./http_parser/Parser.hpp"
 #include <sstream>
 #include <string>
 #include <vector>
-#include "./http_parser/Parser.hpp"
-#include "./cfg/cfg.hpp"
 
 namespace Utils {
 

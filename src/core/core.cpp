@@ -75,8 +75,8 @@ int accpetNewSocket(int mainFd) {
 }
 
 // @brief closes a scoket, removes is from scoketPFd vector and metadata array
-void closeDelSocket(
-	std::vector<pollfd> &sockets, size_t sIdx, std::map<int, struct SocketMeta> &socketsMeta) {
+void closeDelSocket(std::vector<pollfd> &sockets, size_t sIdx,
+					std::map<int, struct SocketMeta> &socketsMeta) {
 	std::vector<pollfd>::iterator sPFd =
 		sockets.begin() + static_cast<std::vector<pollfd>::difference_type>(sIdx);
 	close(sPFd->fd);
@@ -86,9 +86,8 @@ void closeDelSocket(
 
 // @brief for each server, accept new clients connecting to its listener pollFD, andd add them to
 // sockets vector and socketsMeta
-void acceptNewClients(
-	std::vector<pollfd> &sockets, std::vector<Config::ServerConfig> &servers,
-	std::map<int, struct SocketMeta> &socketsMeta) {
+void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerConfig> &servers,
+					  std::map<int, struct SocketMeta> &socketsMeta) {
 	// a sockaddr_in address may be used to determine client's port and ip, to be used for rate
 	// limiting for example
 
@@ -96,8 +95,8 @@ void acceptNewClients(
 		if ((sockets[p].revents & POLLIN) != 0) {
 			int newSocketFd = accpetNewSocket(sockets[p].fd);
 			if (newSocketFd == -1) {
-				coreLogger.warn(
-					"failed to accpet connection: " + std::string(std::strerror(errno)));
+				coreLogger.warn("failed to accpet connection: " +
+								std::string(std::strerror(errno)));
 			} else {
 				pollfd npfd = {newSocketFd, POLLIN, 0};
 				sockets.push_back(npfd);
@@ -115,8 +114,8 @@ void acceptNewClients(
 // @brief takes references, treates incoming requests, if it's bad or incmplete it signals to skip
 // till next loop if all good and a response was written it returns 0 so the res is sent
 // @return 1 if should continue
-int handleReq(
-	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx, std::vector<Config::ServerConfig> &servers) {
+int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+			  size_t &sIdx, std::vector<Config::ServerConfig> &servers) {
 	pollfd &socketPFd = sockets[sIdx];
 	struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
 
@@ -148,8 +147,8 @@ int handleReq(
 	return 0;
 }
 
-void handleRes(
-	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx) {
+void handleRes(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+			   size_t &sIdx) {
 	pollfd &socketPFd = sockets[sIdx];
 	struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
 

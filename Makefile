@@ -23,15 +23,16 @@ re : fclean all
 # checks code is formatted well else throw error
 format:
 	@printf "\033[33mChecking formatting...\033[0m\n"
-	@echo $(SRC) | xargs clang-format --dry-run --Werror
+	@echo $(SRC) $(HDR) | xargs clang-format --dry-run --Werror
 	@printf "\033[32mFormatting is clean!\033[0m\n"
+
+fix-format:
+	clang-format -i $(SRC) $(HDR)
 
 # We use run-clang-tidy for speed.
 lint:
 	@printf "$(YELLOW)Linting...$(RESET) "
-	@# Run clang-tidy directly on all source files.
-	@# Everything after '--' are the compiler flags needed to parse the files.
-	@if clang-tidy $(SRC) -header-filter='src/.*' -quiet -use-color=1 -- $(CPPFLAGS) > lint_output.log 2>&1; then \
+	@if clang-tidy $(SRC) $(HDR) -header-filter='src/.*' -quiet -use-color=1 -- $(CPPFLAGS) > lint_output.log 2>&1; then \
 		printf "$(GREEN)OK!$(RESET)\n"; \
 		rm -f lint_output.log; \
 	else \

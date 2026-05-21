@@ -10,7 +10,7 @@ using namespace Utils;
 
 std::string Utils::fakeHttpRes(std::vector<Config::ServerConfig> &servers, HttpRequest &req) {
 	try {
-		Cgi	cgi(servers[0].routes[0].cgi, req);
+		Cgi cgi(servers[0].routes[0].cgi, req);
 		std::string html = cgi.executeCGI();
 
 		std::ostringstream oss;
@@ -28,8 +28,7 @@ std::string Utils::fakeHttpRes(std::vector<Config::ServerConfig> &servers, HttpR
 		std::ostringstream oss;
 		oss << "HTTP/1.1 500 Internal Server Error\r\n"
 			<< "Content-Type: text/html;\r\n"
-			<< "Content-Length: " << req.body.length()
-			<< "\r\n"
+			<< "Content-Length: " << req.body.length() << "\r\n"
 			<< "<!doctype html>\n"
 			<< "<html lang=\"en\">\n"
 			<< "<head>\n"

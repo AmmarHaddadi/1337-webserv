@@ -87,7 +87,7 @@ std::string Cgi::executeCGI() {
 		NULL,
 	};
 
-	if (pipe(outPipe) == -1 || pipe(inPipe) == -1){
+	if (pipe(outPipe) == -1 || pipe(inPipe) == -1) {
 		closePipe();
 		throw std::runtime_error("Run-time Error: pipe() failed");
 	}
@@ -129,7 +129,7 @@ std::string Cgi::executeCGI() {
 		if (WIFSIGNALED(status) && WTERMSIG(status) == SIGALRM)
 			throw std::runtime_error("Script timeout");
 	}
-	return (responseScript);
+	return responseScript;
 }
 
 Cgi::~Cgi() { closePipe(); }

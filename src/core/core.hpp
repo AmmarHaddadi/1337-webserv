@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../cfg/cfg.hpp"
+#include <cerrno>
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
@@ -12,7 +13,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
-#include <cerrno>
 
 struct SocketMeta {
 	int fd;
