@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../src/http_parser/Parser.hpp"
+#include "http_parser/Parser.hpp"
 #include "core/core.hpp"
 #include <sstream>
 #include <string>

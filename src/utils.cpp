@@ -17,9 +17,10 @@ std::string Utils::responseFile(SocketMeta &sMeta, HttpRequest &req) {
 
 	if (req.status == BAD_REQ || req.status == PAYLOAD_TOO_LARGE || req.status == NOT_IMPLEMENTED)
 		body = Utils::generateHtmlErrorPage(req.status);
-	else if (!file.is_open())
-		body = Utils::generateHtmlErrorPage(NOT_FOUND);
-	else {
+	else if (!file.is_open()) {
+		req.status = NOT_FOUND;
+		body = Utils::generateHtmlErrorPage(req.status);
+	} else {
 		std::stringstream buffer;
 		buffer << file.rdbuf();
 		body = buffer.str();
@@ -61,7 +62,7 @@ std::string Utils::generateHtmlErrorPage(int code) {
 
 	switch (code) {
 	case BAD_REQ:
-		msg = "Bad REQ";
+		msg = "Bad Request";
 		break;
 	case PAYLOAD_TOO_LARGE:
 		msg = "Payload Too Large";
