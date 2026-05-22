@@ -41,18 +41,38 @@ void Cgi::closePipe() {
 }
 
 std::vector<std::string> Cgi::buildEnvp() const {
+	std::map<std::string, std::string>::iterator it;
 	std::vector<std::string> envp;
 	std::ostringstream numberString;
 	std::string scriptName;
 	size_t pos = structRequest.path.rfind('/');
 
 	scriptName = structRequest.path.substr(pos + 1);
-	structRequest.path = "." + structRequest.path;
 	numberString << structRequest.body.length();
 	envp.push_back("REQUEST_METHOD=" + getRequestMethod(structRequest.method));
 	envp.push_back("QUERY_STRING=" + structRequest.query);
 	envp.push_back("CONTENT_LENGTH=" + numberString.str());
 	envp.push_back("SCRIPT_NAME=" + scriptName);
+	it = structRequest.headers.find("Accept");
+	if (it != structRequest.headers.end() && !it->second.empty())
+		envp.push_back("HTTP_ACCEPT=" + it->second);
+	it = structRequest.headers.find("Content-Type");
+	if (it != structRequest.headers.end() && !it->second.empty())
+		envp.push_back("CONTENT_TYPE=" + it->second);
+	it = structRequest.headers.find("Host");
+	if (it != structRequest.headers.end() && !it->second.empty()) {
+		std::string host = it->second;
+		size_t posOfPort = host.find(':');
+		std::string port = host.substr(posOfPort + 1);
+		envp.push_back("SERVER_PORT=" + port);
+		envp.push_back("HTTP_HOST=" + host.substr(0, posOfPort));
+	}
+	it = structRequest.headers.find("User-Agent");
+	if (it != structRequest.headers.end() && !it->second.empty())
+		envp.push_back("HTTP_USER_AGENT=" + it->second);
+	it = structRequest.headers.find("custhdr");
+	if (it != structRequest.headers.end() && !it->second.empty())
+		envp.push_back("HTTP_CUSTHDR=" + it->second);
 	return (envp);
 }
 
@@ -73,21 +93,19 @@ std::string Cgi::findRunner() const {
 std::string Cgi::executeCGI() {
 	std::string responseScript;
 	std::string runnerScript = findRunner();
+	std::string fixPath = "." + structRequest.path;
+	std::vector<std::string> helpBuildEnvp = buildEnvp();
 	char *argv[] = {
 		const_cast<char *>(runnerScript.c_str()),
-		const_cast<char *>(structRequest.path.c_str()),
+		const_cast<char *>(fixPath.c_str()),
 		NULL,
 	};
-	std::vector<std::string> helpBuildEnvp = buildEnvp();
-	char *envp[] = {
-		const_cast<char *>(helpBuildEnvp[0].c_str()),
-		const_cast<char *>(helpBuildEnvp[1].c_str()),
-		const_cast<char *>(helpBuildEnvp[2].c_str()),
-		const_cast<char *>(helpBuildEnvp[3].c_str()),
-		NULL,
-	};
-
-	if (pipe(outPipe) == -1 || pipe(inPipe) == -1){
+	std::vector<char *> envp;
+	envp.reserve(helpBuildEnvp.size() + 1);
+	for (size_t i = 0; i < helpBuildEnvp.size(); i++)
+		envp.push_back(const_cast<char *>(helpBuildEnvp[i].c_str()));
+	envp.push_back(NULL);
+	if (pipe(outPipe) == -1 || pipe(inPipe) == -1) {
 		closePipe();
 		throw std::runtime_error("Run-time Error: pipe() failed");
 	}
@@ -99,12 +117,12 @@ std::string Cgi::executeCGI() {
 	if (pid == 0) {
 		if (dup2(outPipe[1], STDOUT_FILENO) == -1 || dup2(inPipe[0], STDIN_FILENO) == -1) {
 			closePipe();
-			exit(1);
+			_exit(1);
 		}
 		closePipe();
 		alarm(TCP_TIMEOUT);
-		if (execve(argv[0], argv, envp) == -1)
-			exit(2);
+		if (execve(argv[0], argv, &envp[0]) == -1)
+			_exit(2);
 	} else {
 		close(inPipe[0]);
 		close(outPipe[1]);

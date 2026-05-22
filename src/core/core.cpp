@@ -120,7 +120,8 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 	SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 =======
 int handleReq(
-	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx, std::vector<Config::ServerConfig> &servers) {
+	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx,
+	std::vector<Config::ServerConfig> &servers) {
 	pollfd &socketPFd = sockets[sIdx];
 	struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
 >>>>>>> f932f61 (update)
