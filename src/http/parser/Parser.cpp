@@ -1,80 +1,73 @@
-#include "../main.hpp"
+#include "Parser.hpp"
+#include "../http.hpp"
+#include <cstdlib>
+#include <sstream>
 
-HttpRequest parserHttp(std::string &buf, size_t maxBodySize) {
-	HttpRequest request;
-	request.status = COMPLETE;
+using namespace http;
 
-	size_t firstLineEnd = buf.find('\n');
-	if (firstLineEnd != std::string::npos) {
-		if (firstLineEnd == 0 || buf[firstLineEnd - 1] != '\r') {
-			request.status = BAD_REQ;
-			buf.clear();
-			return request;
-		}
+HttpRequest http::parseHttp(std::string &reqBuf, size_t maxBodySize) {
+	size_t firstLineEnd = reqBuf.find("\r\n");
+	if (firstLineEnd == std::string::npos || firstLineEnd == 0) {
+		HttpRequest req;
+		req.status = BAD_REQ;
+		return req;
 	}
 
-	size_t bodyStart = buf.find("\r\n\r\n");
-	if (bodyStart == std::string::npos) {
-		request.status = INCOMPLETE;
-		return request;
+	// start of body & end of headers if no body exists
+	size_t headersEnd = reqBuf.find("\r\n\r\n");
+	if (headersEnd == std::string::npos) {
+		HttpRequest req;
+		req.status = INCOMPLETE;
+		return req;
 	}
 
-	std::string headerSection = buf.substr(0, bodyStart);
-	size_t requestLineEnd = headerSection.find("\r\n");
-	if (requestLineEnd == std::string::npos) {
-		request.status = BAD_REQ;
-		buf.clear();
-		return request;
-	}
+	std::string requestLineToParse = reqBuf.substr(0, firstLineEnd);
+	size_t headersStart = firstLineEnd + 2;
+	std::string headersToParse = reqBuf.substr(headersStart, headersEnd - headersStart);
 
-	std::string requestLineToParse = headerSection.substr(0, requestLineEnd);
-	std::string headersToParse = headerSection.substr(requestLineEnd + 2);
-
-	HttpRequest tempReq = parseRequestLine(requestLineToParse);
-	if (tempReq.method == INVALID) {
+	HttpRequest request = parseRequestLine(requestLineToParse);
+	// TODO empty method isn't like an unknown one
+	if (request.method == INVALID) {
 		request.status = NOT_IMPLEMENTED;
-		buf.clear();
-		return request;
+		// NOTE only clear up to body end
+		//  reqBuf.clear();
+		// return request;
 	}
 
-	request.method = tempReq.method;
-	request.path = tempReq.path;
-	request.query = tempReq.query;
-	request.version = tempReq.version;
-
+	// could fail silently, sets status to BAD_REQ, burried inside, nasty code
 	parseHeaders(headersToParse, request);
 
+	// BODY
 	if (request.headers.find("Content-Length") != request.headers.end()) {
 		size_t contentLength = std::strtoul(request.headers["Content-Length"].c_str(), NULL, 10);
 
 		if (contentLength > maxBodySize) {
 			request.status = PAYLOAD_TOO_LARGE;
-			buf.clear();
+			reqBuf.clear();
 			return request;
 		}
 
-		std::string currentBody = buf.substr(bodyStart + 4);
-		if (currentBody.size() < contentLength) {
+		if (reqBuf.size() < headersEnd + 4 + contentLength) {
 			request.status = INCOMPLETE;
 			return request;
 		}
 
-		parseBody(currentBody.substr(0, contentLength), request);
+		request.body = reqBuf.substr(headersEnd + 4, contentLength);
 	}
 
-	size_t headerLength = bodyStart + 4;
+	size_t headerLength = headersEnd + 4;
 	size_t bodyLength = request.body.size();
 	size_t totalConsumed = headerLength + bodyLength;
 
-	if (totalConsumed <= buf.size()) {
-		buf.erase(0, totalConsumed);
+	if (totalConsumed <= reqBuf.size()) {
+		reqBuf.erase(0, totalConsumed);
 	}
 
 	return request;
 }
 
 // Print function to display parsed HTTP request
-void printHttpRequest(const HttpRequest &request) {
+void http::printHttpRequest(const HttpRequest &request) {
 	// std::cout << "\n======== HTTP REQUEST ========" << '\n';
 
 	// Print method

@@ -1,5 +1,8 @@
-#include "../cfg/cfg.hpp"
-#include "../main.hpp"
+#include "core.hpp"
+#include "../http/http.hpp"
+#include "../http/parser/Parser.hpp"
+#include "../http/response/response.hpp"
+#include <fcntl.h>
 
 int setNonblock(int listenerFd) {
 	int flags = fcntl(listenerFd, F_GETFL, 0);
@@ -126,16 +129,18 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 		sMeta.lastEvent = std::time(0);
 		sMeta.requestBuf.append(buf, totalRead);
 
-		HttpRequest req = parserHttp(sMeta.requestBuf, sMeta.server.maxBodySize);
+		http::HttpRequest req = http::parseHttp(sMeta.requestBuf, sMeta.server.maxBodySize);
 
-		if (req.status == INCOMPLETE) {
+		if (req.status == http::BAD_REQ) {
+			closeDelSocket(sockets, sIdx, socketsMeta);
 			return 1; // continue
 		}
-		if (req.status != INCOMPLETE) {
-			respond(sMeta, req);
-			socket.events = POLLOUT;
+		if (req.status == http::INCOMPLETE) {
+			return 1; // continue
 		}
-		printHttpRequest(req);
+		http::printHttpRequest(req);
+		http::respondToReq(sMeta, req);
+		socket.events = POLLOUT;
 	}
 	return 0;
 }

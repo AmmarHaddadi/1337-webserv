@@ -1,8 +1,10 @@
-#include "../main.hpp"
 #include "Parser.hpp"
+#include <sstream>
 
-HttpRequest parseRequestLine(const std::string &line) {
+using namespace http;
+HttpRequest http::parseRequestLine(const std::string &line) {
 	HttpRequest request;
+	request.status = COMPLETE;
 
 	std::istringstream iss(line);
 	std::string methodStr;
