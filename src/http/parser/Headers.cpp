@@ -25,6 +25,7 @@ void http::parseHeaders(const std::string &headerSection, HttpRequest &request) 
 			request.headers[key] = value;
 		} else {
 			request.status = BAD_REQ;
+			break;
 		}
 	}
 }

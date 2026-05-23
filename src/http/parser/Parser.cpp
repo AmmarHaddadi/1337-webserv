@@ -1,4 +1,5 @@
 #include "Parser.hpp"
+#include "../../shared/utils.hpp"
 #include "../http.hpp"
 #include <cstdlib>
 #include <sstream>
@@ -25,49 +26,53 @@ HttpRequest http::parseHttp(std::string &reqBuf, size_t maxBodySize) {
 	size_t headersStart = firstLineEnd + 2;
 	std::string headersToParse = reqBuf.substr(headersStart, headersEnd - headersStart);
 
-	HttpRequest request = parseRequestLine(requestLineToParse);
-	// TODO empty method isn't like an unknown one
-	if (request.method == INVALID) {
-		request.status = NOT_IMPLEMENTED;
-		// NOTE only clear up to body end
-		//  reqBuf.clear();
-		// return request;
-	}
+	// sets BAD_REQ if failed to parse the req line
+	HttpRequest req = parseRequestLine(requestLineToParse);
+	if (req.status == BAD_REQ)
+		return req;
 
 	// could fail silently, sets status to BAD_REQ, burried inside, nasty code
-	parseHeaders(headersToParse, request);
+	parseHeaders(headersToParse, req);
+	if (req.status == BAD_REQ)
+		return req;
 
 	// BODY
-	if (request.headers.find("Content-Length") != request.headers.end()) {
-		size_t contentLength = std::strtoul(request.headers["Content-Length"].c_str(), NULL, 10);
+	if (req.headers.find("Content-Length") != req.headers.end()) {
+		size_t contentLength = std::strtoul(req.headers["Content-Length"].c_str(), NULL, 10);
 
 		if (contentLength > maxBodySize) {
-			request.status = PAYLOAD_TOO_LARGE;
-			reqBuf.clear();
-			return request;
+			// req.status = PAYLOAD_TOO_LARGE; // moved to reponsder
+			return req;
 		}
 
 		if (reqBuf.size() < headersEnd + 4 + contentLength) {
-			request.status = INCOMPLETE;
-			return request;
+			req.status = INCOMPLETE;
+			return req;
 		}
 
-		request.body = reqBuf.substr(headersEnd + 4, contentLength);
+		req.body = reqBuf.substr(headersEnd + 4, contentLength);
 	}
 
-	size_t headerLength = headersEnd + 4;
-	size_t bodyLength = request.body.size();
-	size_t totalConsumed = headerLength + bodyLength;
+	size_t bodyLength = req.body.size();
+	size_t totalConsumed = headersEnd + 4 + bodyLength;
 
 	if (totalConsumed <= reqBuf.size()) {
 		reqBuf.erase(0, totalConsumed);
 	}
 
-	return request;
+	return req;
 }
 
 // Print function to display parsed HTTP request
 void http::printHttpRequest(const HttpRequest &request) {
+	std::time_t now = std::time(0);
+	std::string dt = std::ctime(&now);
+	if (!dt.empty() && dt[dt.length() - 1] == '\n') {
+		dt.erase(dt.length() - 1);
+	}
+
+	std::cout << dt << " -> " << Utils::httpMethodToString(request.method) << " " << request.path
+			  << "\n";
 	// std::cout << "\n======== HTTP REQUEST ========" << '\n';
 
 	// Print method

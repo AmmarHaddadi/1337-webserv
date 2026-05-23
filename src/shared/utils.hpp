@@ -5,12 +5,12 @@
 #include <string>
 #include <vector>
 
-#define HTTP_VER "HTTP/1.1"
-
 namespace Utils {
 
 std::vector<std::string> split(const std::string &s, char delimiter);
 bool isAllNum(const std::string &s);
 std::string getMimeType(const std::string &filePath);
+std::string decodeURL(const std::string &url);
+std::string httpMethodToString(const http::HttpMethod &method);
 
 } // namespace Utils
