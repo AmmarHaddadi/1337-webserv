@@ -1,5 +1,8 @@
-#include "../cfg/cfg.hpp"
-#include "../main.hpp"
+#include "core.hpp"
+#include "../http/http.hpp"
+#include "../http/parser/Parser.hpp"
+#include "../http/response/response.hpp"
+#include <fcntl.h>
 
 int setNonblock(int listenerFd) {
 	int flags = fcntl(listenerFd, F_GETFL, 0);
@@ -75,8 +78,8 @@ int accpetNewSocket(int mainFd) {
 }
 
 // @brief closes a scoket, removes is from scoketPFd vector and metadata array
-void closeDelSocket(
-	std::vector<pollfd> &sockets, size_t sIdx, std::map<int, struct SocketMeta> &socketsMeta) {
+void closeDelSocket(std::vector<pollfd> &sockets, size_t sIdx,
+					std::map<int, struct SocketMeta> &socketsMeta) {
 	std::vector<pollfd>::iterator sPFd =
 		sockets.begin() + static_cast<std::vector<pollfd>::difference_type>(sIdx);
 	close(sPFd->fd);
@@ -86,9 +89,8 @@ void closeDelSocket(
 
 // @brief for each server, accept new clients connecting to its listener pollFD, andd add them to
 // sockets vector and socketsMeta
-void acceptNewClients(
-	std::vector<pollfd> &sockets, std::vector<Config::ServerConfig> &servers,
-	std::map<int, struct SocketMeta> &socketsMeta) {
+void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerConfig> &servers,
+					  std::map<int, struct SocketMeta> &socketsMeta) {
 	// a sockaddr_in address may be used to determine client's port and ip, to be used for rate
 	// limiting for example
 
@@ -96,16 +98,12 @@ void acceptNewClients(
 		if ((sockets[p].revents & POLLIN) != 0) {
 			int newSocketFd = accpetNewSocket(sockets[p].fd);
 			if (newSocketFd == -1) {
-				coreLogger.warn(
-					"failed to accpet connection: " + std::string(std::strerror(errno)));
+				coreLogger.warn("failed to accpet connection: " +
+								std::string(std::strerror(errno)));
 			} else {
 				pollfd npfd = {newSocketFd, POLLIN, 0};
 				sockets.push_back(npfd);
-				// metadata
-				SocketMeta newSocketMeta;
-				newSocketMeta.fd = newSocketFd;
-				newSocketMeta.lastEvent = std::time(0);
-				newSocketMeta.port = servers[p].port;
+				SocketMeta newSocketMeta(servers[p]);
 				socketsMeta.insert(std::make_pair(newSocketFd, newSocketMeta));
 			}
 		}
@@ -115,13 +113,13 @@ void acceptNewClients(
 // @brief takes references, treates incoming requests, if it's bad or incmplete it signals to skip
 // till next loop if all good and a response was written it returns 0 so the res is sent
 // @return 1 if should continue
-int handleReq(
-	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx) {
-	pollfd &socketPFd = sockets[sIdx];
-	struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
+int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+			  size_t &sIdx) {
+	pollfd &socket = sockets[sIdx];
+	SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 
 	char buf[1024];
-	ssize_t totalRead = read(socketPFd.fd, buf, 1024);
+	ssize_t totalRead = read(socket.fd, buf, 1024);
 
 	// HINT 0 read = disconnect
 	if (totalRead == 0) {
@@ -131,34 +129,33 @@ int handleReq(
 		sMeta.lastEvent = std::time(0);
 		sMeta.requestBuf.append(buf, totalRead);
 
-		HttpRequest req = parserHttp(sMeta.requestBuf);
-		if (req.status == BAD_REQ) {
+		http::HttpRequest req = http::parseHttp(sMeta.requestBuf, sMeta.server.maxBodySize);
+
+		if (req.status == http::BAD_REQ) {
 			closeDelSocket(sockets, sIdx, socketsMeta);
 			return 1; // continue
 		}
-		if (req.status == INCOMPLETE) {
+		if (req.status == http::INCOMPLETE) {
 			return 1; // continue
 		}
-		if (req.status == COMPLETE) {
-			sMeta.responseBuf = Utils::fakeHttpRes();
-			socketPFd.events = POLLOUT;
-		}
-		printHttpRequest(req);
+		http::printHttpRequest(req);
+		http::respondToReq(sMeta, req);
+		socket.events = POLLOUT;
 	}
 	return 0;
 }
 
-void handleRes(
-	std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta, size_t &sIdx) {
-	pollfd &socketPFd = sockets[sIdx];
-	struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
+void handleRes(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+			   size_t &sIdx) {
+	pollfd &socket = sockets[sIdx];
+	SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 
 	std::string &resbuf = sMeta.responseBuf;
 	if (!resbuf.empty()) {
-		ssize_t sent = send(socketPFd.fd, resbuf.c_str(), resbuf.size(), 0);
+		ssize_t sent = send(socket.fd, resbuf.c_str(), resbuf.size(), 0);
 		sMeta.lastEvent = std::time(0);
 		resbuf.erase(0, sent);
 	}
 	if (resbuf.empty())
-		socketPFd.events = POLLIN;
+		socket.events = POLLIN;
 }

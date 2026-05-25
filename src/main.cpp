@@ -21,6 +21,7 @@ int main(int ac, char **av) {
 		return 1;
 	}
 
+	// sockets has the serves at first, then the clients
 	std::vector<pollfd> sockets;
 	for (size_t scvIdx = 0; scvIdx < servers.size(); ++scvIdx) {
 		int listenerFd = setupListener(servers[scvIdx].host, servers[scvIdx].port);
@@ -41,20 +42,20 @@ int main(int ac, char **av) {
 		acceptNewClients(sockets, servers, socketsMeta);
 
 		for (size_t sIdx = servers.size(); sIdx < sockets.size(); ++sIdx) {
-			pollfd &socketPFd = sockets[sIdx];
-			struct SocketMeta &sMeta = socketsMeta[socketPFd.fd];
+			pollfd &socket = sockets[sIdx];
+			SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 
-			if ((socketPFd.revents & (POLLHUP | POLLERR)) != 0) {
+			if ((socket.revents & (POLLHUP | POLLERR)) != 0) {
 				closeDelSocket(sockets, sIdx, socketsMeta);
 				--sIdx;
 				continue;
 			}
 
-			if ((socketPFd.revents & POLLIN) != 0) {
+			if ((socket.revents & POLLIN) != 0) {
 				if (handleReq(sockets, socketsMeta, sIdx) == 1)
 					continue;
 
-			} else if ((socketPFd.revents & POLLOUT) != 0) {
+			} else if ((socket.revents & POLLOUT) != 0) {
 				handleRes(sockets, socketsMeta, sIdx);
 			}
 			// close stale connection
