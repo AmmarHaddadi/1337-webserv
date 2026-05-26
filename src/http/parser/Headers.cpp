@@ -4,19 +4,17 @@
 using namespace http;
 
 void http::parseHeaders(const std::string &headerSection, HttpRequest &request) {
-	std::istringstream iss(headerSection);
-	std::string line;
+	size_t pos = 0;
 
-	while (std::getline(iss, line, '\r')) { // NOLINT
-		if (line.empty()) {
+	while (pos < headerSection.size()) {
+		size_t lineEnd = headerSection.find("\r\n", pos);
+		if (lineEnd == std::string::npos)
+			lineEnd = headerSection.size();
+
+		std::string line = headerSection.substr(pos, lineEnd - pos);
+		if (line.empty())
 			break;
-		}
 
-		if (line[line.size() - 1] == '\n') {
-			line = line.substr(0, line.size() - 1);
-		}
-
-		// NOTE RFC allows empty values but the `:` is mandatory
 		size_t colonPos = line.find(':');
 		if (colonPos != std::string::npos) {
 			std::string key = line.substr(0, colonPos);
@@ -27,5 +25,7 @@ void http::parseHeaders(const std::string &headerSection, HttpRequest &request) 
 			request.status = BAD_REQ;
 			break;
 		}
+
+		pos = lineEnd + 2;
 	}
 }

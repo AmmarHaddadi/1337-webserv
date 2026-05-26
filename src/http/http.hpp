@@ -17,6 +17,7 @@ enum HttpMethod { GET, POST, DELETE, INVALID };
 enum RequestStatus {
 	INCOMPLETE,
 	COMPLETE,
+	TOO_LARGE,
 	BAD_REQ,
 };
 

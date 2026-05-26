@@ -135,6 +135,13 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 			closeDelSocket(sockets, sIdx, socketsMeta);
 			return 1; // continue
 		}
+		if (req.status == http::TOO_LARGE) {
+			sMeta.responseBuf = http::generateHttpResponse(
+				http::PAYLOAD_TOO_LARGE, http::generateErrorPage(http::PAYLOAD_TOO_LARGE));
+			sMeta.requestBuf.clear();
+			socket.events = POLLOUT;
+			return 0;
+		}
 		if (req.status == http::INCOMPLETE) {
 			return 1; // continue
 		}
