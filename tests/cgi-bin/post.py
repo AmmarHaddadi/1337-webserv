@@ -4,9 +4,6 @@ import sys
 
 body = sys.stdin.read()
 
-print("Content-Type: text/plain")
-print()
-
 print("=== CGI POST TEST ===")
 print("METHOD =", os.environ.get("REQUEST_METHOD"))
 print("QUERY  =", os.environ.get("QUERY_STRING"))

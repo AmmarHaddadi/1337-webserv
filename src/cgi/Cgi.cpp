@@ -31,7 +31,6 @@ void Cgi::closePipe() {
 }
 
 std::vector<std::string> Cgi::buildEnvp() const {
-	std::map<std::string, std::string>::iterator it;
 	std::vector<std::string> envp;
 	std::ostringstream numberString;
 	std::string scriptName;
