@@ -136,9 +136,11 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 			return 1; // continue
 		}
 		if (req.status == http::TOO_LARGE) {
-			sMeta.responseBuf = http::generateHttpResponse(
-				http::PAYLOAD_TOO_LARGE, http::generateErrorPage(http::PAYLOAD_TOO_LARGE));
+			sMeta.responseBuf =
+				http::generateHttpResponse(http::PAYLOAD_TOO_LARGE, req.keepAlive,
+										   http::generateErrorPage(http::PAYLOAD_TOO_LARGE));
 			sMeta.requestBuf.clear();
+			sMeta.closeAfterResponse = !req.keepAlive;
 			socket.events = POLLOUT;
 			return 0;
 		}
@@ -146,6 +148,7 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 			return 1; // continue
 		}
 		http::printHttpRequest(req);
+		sMeta.closeAfterResponse = !req.keepAlive;
 		http::respondToReq(sMeta, req);
 		socket.events = POLLOUT;
 	}
@@ -163,6 +166,12 @@ void handleRes(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &s
 		sMeta.lastEvent = std::time(0);
 		resbuf.erase(0, sent);
 	}
-	if (resbuf.empty())
+	if (resbuf.empty()) {
+		if (sMeta.closeAfterResponse) {
+			closeDelSocket(sockets, sIdx, socketsMeta);
+			--sIdx;
+			return;
+		}
 		socket.events = POLLIN;
+	}
 }

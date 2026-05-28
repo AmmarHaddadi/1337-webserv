@@ -5,13 +5,14 @@
 #include <string>
 
 namespace http {
-void respondToReq(SocketMeta &sMeta, HttpRequest &req);
-void getFile(SocketMeta &sMeta, HttpRequest &req);
+void respondToReq(SocketMeta &sMeta, const HttpRequest &req);
+void getFile(SocketMeta &sMeta, const HttpRequest &req);
 
 // helpers
 std::string generateHtmlPage(const std::string &title, const std::string &body);
 std::string generateErrorPage(HTTPCode code);
-std::string generateHttpResponse(HTTPCode code, const std::map<std::string, std::string> &headers,
-								 const std::string &body);
-std::string generateHttpResponse(HTTPCode code, const std::string &body);
+
+std::string generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body);
+std::string generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body,
+								 std::map<std::string, std::string> headers);
 } // namespace http

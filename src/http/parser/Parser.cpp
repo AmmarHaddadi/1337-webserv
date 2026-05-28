@@ -112,8 +112,10 @@ HttpRequest http::parseHttp(std::string &reqBuf, size_t maxBodySize) {
 
 	std::string transferEncoding;
 	std::string contentLength;
+	std::string connectionValue;
 	bool hasChunked = false;
 	bool hasContentLen = false;
+	bool hasConnection = false;
 
 	for (std::map<std::string, std::string>::const_iterator it = req.headers.begin();
 		 it != req.headers.end(); ++it) {
@@ -131,7 +133,22 @@ HttpRequest http::parseHttp(std::string &reqBuf, size_t maxBodySize) {
 		} else if (key == "content-length") {
 			contentLength = it->second;
 			hasContentLen = true;
+		} else if (key == "connection") {
+			connectionValue = it->second;
+			hasConnection = true;
 		}
+	}
+	req.keepAlive = false;
+	if (hasConnection) {
+		std::string lowerVal = connectionValue;
+		for (size_t i = 0; i < lowerVal.size(); ++i) {
+			unsigned char ch = static_cast<unsigned char>(lowerVal[i]);
+			lowerVal[i] = static_cast<char>(std::tolower(ch));
+		}
+		if (lowerVal.find("close") != std::string::npos)
+			req.keepAlive = false;
+		else if (lowerVal.find("keep-alive") != std::string::npos)
+			req.keepAlive = true;
 	}
 
 	if (hasChunked) {

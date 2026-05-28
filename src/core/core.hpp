@@ -15,12 +15,14 @@
 
 extern CoreLogger coreLogger;
 struct SocketMeta {
-	explicit SocketMeta(Config::ServerConfig &scRef) : lastEvent(std::time(0)), server(scRef) {};
+	explicit SocketMeta(Config::ServerConfig &scRef)
+		: lastEvent(std::time(0)), closeAfterResponse(true), server(scRef) {};
 	// int fd; // can be found in the sockets vector type pollFd
 	// std::string port;
 	std::time_t lastEvent;
 	std::string requestBuf;
 	std::string responseBuf;
+	bool closeAfterResponse;
 	// TODO XXX has to be const in a way or other
 	Config::ServerConfig &server; // parent server config
 };

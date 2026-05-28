@@ -40,6 +40,7 @@ struct HttpRequest {
 	std::string version;
 	std::map<std::string, std::string> headers;
 	std::string body;
+	bool keepAlive;
 };
 
 } // namespace http

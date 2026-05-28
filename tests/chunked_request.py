@@ -49,6 +49,7 @@ def main():
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--path", default="/")
     parser.add_argument("--delay", type=float, default=0.2)
+    parser.add_argument("--keep-alive", action="store_true")
     args = parser.parse_args()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -62,6 +63,7 @@ def main():
         b"\r\n",
     ]
     expected_body = b"Wikipedia in\r\n\r\nchunks."
+    connection_value = "keep-alive" if args.keep_alive else "close"
 
     headers = (
         (
@@ -69,18 +71,16 @@ def main():
             "Host: {host}\r\n"
             "Transfer-Encoding: chunked\r\n"
             "Content-Type: text/plain\r\n"
-            "Connection: close\r\n"
+            "Connection: {connection}\r\n"
             "\r\n"
         )
-        .format(path=args.path, host=args.host)
+        .format(path=args.path, host=args.host, connection=connection_value)
         .encode()
     )
 
     send_pieces(sock, [headers] + body_pieces, args.delay)
 
     response = recv_response(sock)
-
-    sock.close()
 
     if not response:
         print("no response received", file=sys.stderr)
@@ -97,7 +97,29 @@ def main():
         return 1
     if expected_body not in parts[1]:
         print("response body did not contain expected payload", file=sys.stderr)
+        sock.close()
         return 1
+
+    if args.keep_alive:
+        follow_up = (
+            "GET {path} HTTP/1.1\r\n"
+            "Host: {host}\r\n"
+            "Connection: close\r\n"
+            "\r\n"
+        ).format(path=args.path, host=args.host).encode()
+        try:
+            sock.sendall(follow_up)
+        except socket.error:
+            print("keep-alive connection closed before follow-up request", file=sys.stderr)
+            sock.close()
+            return 1
+        follow_response = recv_response(sock)
+        if not follow_response:
+            print("no response to keep-alive follow-up request", file=sys.stderr)
+            sock.close()
+            return 1
+
+    sock.close()
     return 0
 
 
