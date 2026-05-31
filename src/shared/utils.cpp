@@ -1,5 +1,4 @@
 #include "utils.hpp"
-#include "../http/http.hpp"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
@@ -179,4 +178,10 @@ std::string Utils::decodeURL(const std::string &url) {
 		}
 	}
 	return decoded;
+}
+
+void Utils::addSlash(std::string &ref) {
+	if (ref[ref.length() - 1] == '/')
+		return;
+	ref.append("/");
 }

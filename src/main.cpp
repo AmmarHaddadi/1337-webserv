@@ -1,6 +1,6 @@
 #include "main.hpp"
 #include "cfg/cfg.hpp"
-#include "cgi/Cgi.hpp"
+#include "cgi/cgi.hpp"
 #include "core/core.hpp"
 #include <exception>
 #include <iostream>

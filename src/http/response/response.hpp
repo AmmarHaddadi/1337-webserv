@@ -15,4 +15,10 @@ std::string generateErrorPage(HTTPCode code);
 std::string generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body);
 std::string generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body,
 								 std::map<std::string, std::string> headers);
+std::string generateHttpResponseDirectory(const std::string &path, std::vector<std::string> &files);
+bool isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req);
+void directoryFiles(SocketMeta &sMeta, HttpRequest &req);
+bool defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req);
+void uploadFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
+				struct stat &st, bool exist);
 } // namespace http

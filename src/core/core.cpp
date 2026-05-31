@@ -2,6 +2,7 @@
 #include "../http/http.hpp"
 #include "../http/parser/Parser.hpp"
 #include "../http/response/response.hpp"
+#include "../shared/utils.hpp"
 #include <fcntl.h>
 
 int setNonblock(int listenerFd) {
