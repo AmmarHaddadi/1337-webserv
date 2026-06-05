@@ -29,8 +29,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req) {
 		return;
 	}
 
-	if (req.method == POST && req.headers.find("Content-Length") != req.headers.end()) {
-		size_t contentLength = std::strtoul(req.headers["Content-Length"].c_str(), NULL, 10);
+	if (req.method == POST && req.headers.find("content-length") != req.headers.end()) {
+		size_t contentLength = std::strtoul(req.headers["content-length"].c_str(), NULL, 10);
 		if (contentLength > sMeta.server.maxBodySize) {
 			sMeta.responseBuf =
 				generateHttpResponse(PAYLOAD_TOO_LARGE, generateErrorPage(PAYLOAD_TOO_LARGE));
@@ -133,7 +133,7 @@ std::string http::generateHttpResponse(HTTPCode code,
 	std::map<std::string, std::string>::const_iterator it = headers.begin();
 	for (; it != headers.end(); it++)
 		oss << it->first << ": " << it->second << "\r\n";
-	if (headers.find("Content-Length") == headers.end())
+	if (headers.find("content-length") == headers.end())
 		oss << "Content-Length: " << body.size() << "\r\n";
 	oss << "\r\n";
 

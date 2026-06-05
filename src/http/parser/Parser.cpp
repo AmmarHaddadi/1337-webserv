@@ -37,8 +37,8 @@ HttpRequest http::parseHttp(std::string &reqBuf, size_t maxBodySize) {
 		return req;
 
 	// BODY
-	if (req.headers.find("Content-Length") != req.headers.end()) {
-		size_t contentLength = std::strtoul(req.headers["Content-Length"].c_str(), NULL, 10);
+	if (req.headers.find("content-length") != req.headers.end()) {
+		size_t contentLength = std::strtoul(req.headers["content-length"].c_str(), NULL, 10);
 
 		if (contentLength > maxBodySize) {
 			// req.status = PAYLOAD_TOO_LARGE; // moved to reponsder
