@@ -29,15 +29,6 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req) {
 		return;
 	}
 
-	if (req.method == POST && req.headers.find("Content-Length") != req.headers.end()) {
-		size_t contentLength = std::strtoul(req.headers["Content-Length"].c_str(), NULL, 10);
-		if (contentLength > sMeta.server.maxBodySize) {
-			sMeta.responseBuf =
-				generateHttpResponse(PAYLOAD_TOO_LARGE, generateErrorPage(PAYLOAD_TOO_LARGE));
-			return;
-		}
-	}
-
 	// finding correspondent route config
 	Config::ServerConfig::RouteConfig *rc = NULL;
 	for (unsigned i = 0; i < sMeta.server.routes.size(); i++) {
@@ -74,6 +65,12 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req) {
 		}
 
 		sMeta.responseBuf = generateHttpResponse(NOT_FOUND, generateErrorPage(NOT_FOUND));
+		return;
+	}
+
+	if (req.method == POST) {
+		// temportary until cgi is implemented, just echoing back the body
+		sMeta.responseBuf = generateHttpResponse(OK, req.body);
 		return;
 	}
 
