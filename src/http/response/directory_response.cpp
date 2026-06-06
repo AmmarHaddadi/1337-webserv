@@ -2,7 +2,6 @@
 #include "../../shared/utils.hpp"
 #include "response.hpp"
 #include <dirent.h>
-#include <sys/stat.h>
 
 using namespace http;
 

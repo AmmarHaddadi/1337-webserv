@@ -3,6 +3,7 @@
 #include "../../core/core.hpp"
 #include "../http.hpp"
 #include <string>
+#include <sys/stat.h>
 
 namespace http {
 void respondToReq(SocketMeta &sMeta, const HttpRequest &req);

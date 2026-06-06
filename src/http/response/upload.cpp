@@ -2,7 +2,6 @@
 #include "response.hpp"
 #include <fstream>
 #include <sstream>
-#include <sys/stat.h>
 
 using namespace http;
 
