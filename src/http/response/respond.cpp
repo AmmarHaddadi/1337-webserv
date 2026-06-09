@@ -77,6 +77,12 @@ void http::respondToReq(SocketMeta &sMeta, const HttpRequest &req) {
 		return;
 	}
 
+	if (req.method == POST) {
+		// temportary until cgi is implemented, just echoing back the body
+		sMeta.responseBuf = generateHttpResponse(OK, req.body);
+		return;
+	}
+
 	// if is file and exists
 	//   if ends with cgi extension run cgi
 	//   else serve file (if GET and file_serve is true)

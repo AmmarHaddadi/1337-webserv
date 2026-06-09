@@ -75,6 +75,7 @@ def main():
             "\r\n"
         )
         .format(path=args.path, host=args.host, connection=connection_value)
+
         .encode()
     )
 
