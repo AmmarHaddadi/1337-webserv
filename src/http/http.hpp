@@ -17,6 +17,7 @@ enum HttpMethod { GET, POST, DELETE, INVALID };
 enum RequestStatus {
 	INCOMPLETE,
 	COMPLETE,
+	TOO_LARGE,
 	BAD_REQ,
 };
 
@@ -39,6 +40,7 @@ struct HttpRequest {
 	std::string version;
 	std::map<std::string, std::string> headers;
 	std::string body;
+	bool keepAlive;
 };
 
 } // namespace http

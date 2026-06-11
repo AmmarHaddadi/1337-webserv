@@ -10,6 +10,7 @@ using namespace http;
 HttpRequest http::parseRequestLine(const std::string &line) {
 	HttpRequest request;
 	request.status = COMPLETE;
+	request.keepAlive = false;
 
 	std::istringstream iss(line);
 	std::string methodStr;

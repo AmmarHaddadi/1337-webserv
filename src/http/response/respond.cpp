@@ -16,26 +16,17 @@
 using namespace http;
 
 // NOTE try to move raw response building into sub funcs and keep this highlevel
-void http::respondToReq(SocketMeta &sMeta, HttpRequest &req) {
+void http::respondToReq(SocketMeta &sMeta, const HttpRequest &req) {
 	if (req.version != HTTP_VER) {
-		sMeta.responseBuf =
-			generateHttpResponse(METHOD_NOT_ALLOWED, generateErrorPage(METHOD_NOT_ALLOWED));
+		sMeta.responseBuf = generateHttpResponse(HTTP_VERSION_NOT_SUPPORTED, req.keepAlive,
+												 generateErrorPage(HTTP_VERSION_NOT_SUPPORTED));
 		return;
 	}
 
 	if (req.method == INVALID) {
-		sMeta.responseBuf =
-			generateHttpResponse(METHOD_NOT_ALLOWED, generateErrorPage(METHOD_NOT_ALLOWED));
+		sMeta.responseBuf = generateHttpResponse(METHOD_NOT_ALLOWED, req.keepAlive,
+												 generateErrorPage(METHOD_NOT_ALLOWED));
 		return;
-	}
-
-	if (req.method == POST && req.headers.find("Content-Length") != req.headers.end()) {
-		size_t contentLength = std::strtoul(req.headers["Content-Length"].c_str(), NULL, 10);
-		if (contentLength > sMeta.server.maxBodySize) {
-			sMeta.responseBuf =
-				generateHttpResponse(PAYLOAD_TOO_LARGE, generateErrorPage(PAYLOAD_TOO_LARGE));
-			return;
-		}
 	}
 
 	// finding correspondent route config
@@ -48,14 +39,15 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req) {
 	}
 
 	if (rc == NULL) {
-		sMeta.responseBuf = generateHttpResponse(NOT_FOUND, generateErrorPage(NOT_FOUND));
+		sMeta.responseBuf =
+			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
 		return;
 	}
 
 	if (std::find(rc->allowedMethods.begin(), rc->allowedMethods.end(),
 				  Utils::httpMethodToString(req.method)) == rc->allowedMethods.end()) {
-		sMeta.responseBuf =
-			generateHttpResponse(METHOD_NOT_ALLOWED, generateErrorPage(METHOD_NOT_ALLOWED));
+		sMeta.responseBuf = generateHttpResponse(METHOD_NOT_ALLOWED, req.keepAlive,
+												 generateErrorPage(METHOD_NOT_ALLOWED));
 		return;
 	}
 
@@ -63,7 +55,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req) {
 		// more checks
 		struct stat st;
 		if (stat((sMeta.server.root + req.path).c_str(), &st) != 0) {
-			sMeta.responseBuf = generateHttpResponse(NOT_FOUND, generateErrorPage(NOT_FOUND));
+			sMeta.responseBuf =
+				generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
 			return;
 		}
 
@@ -73,7 +66,14 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req) {
 			return;
 		}
 
-		sMeta.responseBuf = generateHttpResponse(NOT_FOUND, generateErrorPage(NOT_FOUND));
+		sMeta.responseBuf =
+			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
+		return;
+	}
+
+	if (req.method == POST) {
+		// temportary until cgi is implemented, just echoing back the body
+		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, req.body);
 		return;
 	}
 
@@ -111,10 +111,16 @@ std::string http::generateErrorPage(HTTPCode code) {
 	return generateHtmlPage(codeMessages[code], body);
 }
 
+std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body) {
+	std::map<std::string, std::string> hdr;
+	return generateHttpResponse(code, keepAlive, body, hdr);
+}
+
 // NOTE Content-Length is appended automatically if not found
-std::string http::generateHttpResponse(HTTPCode code,
-									   const std::map<std::string, std::string> &headers,
-									   const std::string &body) {
+// automatically picks up the body from the explicit response payload
+std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body,
+									   std::map<std::string, std::string> headers) {
+	headers["connection"] = keepAlive ? "keep-alive" : "close";
 	std::map<HTTPCode, std::string> codeMessages;
 	codeMessages[OK] = "OK";
 	codeMessages[HTTP_VERSION_NOT_SUPPORTED] = "HTTP Version Not Supported";
@@ -135,27 +141,6 @@ std::string http::generateHttpResponse(HTTPCode code,
 		oss << it->first << ": " << it->second << "\r\n";
 	if (headers.find("Content-Length") == headers.end())
 		oss << "Content-Length: " << body.size() << "\r\n";
-	oss << "\r\n";
-
-	// body
-	oss << body;
-
-	return oss.str();
-}
-
-std::string http::generateHttpResponse(HTTPCode code, const std::string &body) {
-	std::map<int, std::string> codeMessages;
-	codeMessages[BAD_REQ] = "Bad Request";
-	codeMessages[PAYLOAD_TOO_LARGE] = "Payload Too Large";
-	codeMessages[NOT_IMPLEMENTED] = "Not Implemented";
-	codeMessages[NOT_FOUND] = "Not Found";
-	codeMessages[COMPLETE] = "OK";
-	std::ostringstream oss;
-
-	// status line
-	oss << HTTP_VER << " " << code << " " << codeMessages[code] << "\r\n";
-
-	oss << "Content-Length: " << body.size() << "\r\n";
 	oss << "\r\n";
 
 	// body
