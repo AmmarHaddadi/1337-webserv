@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 
 namespace http {
-void respondToReq(SocketMeta &sMeta, const HttpRequest &req);
+void respondToReq(SocketMeta &sMeta, HttpRequest &req);
 void getFile(SocketMeta &sMeta, const HttpRequest &req);
 
 // helpers

@@ -21,8 +21,8 @@ bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta,
 					throw std::runtime_error("Runtime error: bad file");
 				}
 				if ((st.st_mode & S_IFMT) != S_IFREG) {
-					sMeta.responseBuf =
-						generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
+					sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
+															 generateErrorPage(NOT_FOUND));
 					closedir(dr);
 					return true;
 				}
