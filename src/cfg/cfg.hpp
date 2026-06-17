@@ -93,4 +93,6 @@ namespace Checker {
 void check(const std::vector<ServerConfig> &scv);
 } // namespace Checker
 
+void debugServerConfig(const Config::ServerConfig &config);
+
 }; // namespace Config

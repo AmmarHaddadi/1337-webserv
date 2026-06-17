@@ -8,8 +8,8 @@
 
 using namespace http;
 
-void http::getFile(SocketMeta &sMeta, const HttpRequest &req) {
-	std::ifstream file((sMeta.server.root + req.path).c_str());
+void http::getFile(SocketMeta &sMeta, const std::string &systemPath, const HttpRequest &req) {
+	std::ifstream file(systemPath.c_str());
 	if (!file.is_open()) {
 		sMeta.responseBuf =
 			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));

@@ -31,7 +31,7 @@ class Cgi {
   public:
 	Cgi(std::map<std::string, std::string> &initCgiMap, http::HttpRequest &initStructRequest);
 	~Cgi();
-	pid_t executeCGI(const std::string &root, int &outReadFd, int &inWriteFd);
+	pid_t executeCGI(const std::string &resolvedPath, int &outReadFd, int &inWriteFd);
 };
 
 } // namespace CGI

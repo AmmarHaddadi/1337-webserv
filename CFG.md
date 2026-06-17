@@ -77,7 +77,7 @@ handle <path> {
 }
 ```
 
-- `<path>` must begin with `/` (e.g. `/`, `/api`, `/upload`).
+- `<path>` must begin with `/` (e.g. `/`, `/api`, `/upload`) and not end with `/` (to prevent undefined behaviour).
 - Route blocks allow per-path overrides (e.g. different root, uploads, redirect).
 
 Example:

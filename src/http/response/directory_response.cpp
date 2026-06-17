@@ -5,8 +5,8 @@
 
 using namespace http;
 
-bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req) {
-	std::string fullPath = sMeta.server.root + req.path;
+bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req, std::string &resolvedPath) {
+	std::string fullPath = resolvedPath;
 	Utils::addSlash(fullPath);
 	const char *pathDir = fullPath.c_str();
 	DIR *dr = opendir(pathDir);
@@ -26,9 +26,9 @@ bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta,
 					closedir(dr);
 					return true;
 				}
-				Utils::addSlash(req.path);
-				req.path.append(std::string(en->d_name));
-				getFile(sMeta, req);
+				// Utils::addSlash(req.path);
+				// req.path.append(std::string(en->d_name));
+				getFile(sMeta, fullPath, req);
 				closedir(dr);
 				return true;
 			}

@@ -4,22 +4,20 @@
 #include "../../shared/utils.hpp"
 #include "../http.hpp"
 #include "response.hpp"
-#include <cerrno>
 #include <algorithm>
+#include <cerrno>
 #include <fcntl.h>
-#include <fstream>
-#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
 #include <unistd.h>
-#include <vector>
 
 using namespace http;
 
+// bro shof shi blasa akhra l had funcition
 bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
 				 std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
-				 int clientFd) {
+				 int clientFd, std::string &resolvedPath) {
 	size_t pos = req.path.rfind('.');
 	if (pos != std::string::npos) {
 		std::string ext = req.path.substr(pos + 1);
@@ -30,7 +28,7 @@ bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpR
 		try {
 			int outFd = -1;
 			int inFd = -1;
-			pid_t pid = cgi.executeCGI(sMeta.server.root, outFd, inFd);
+			pid_t pid = cgi.executeCGI(resolvedPath, outFd, inFd);
 			if (!req.body.empty()) {
 				size_t totalWritten = 0;
 				while (totalWritten < req.body.size()) {
@@ -49,8 +47,9 @@ bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpR
 						close(inFd);
 					}
 					waitpid(pid, NULL, WNOHANG);
-					sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-															 generateErrorPage(INTERNAL_SERVER_ERROR));
+					sMeta.responseBuf =
+						generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+											 generateErrorPage(INTERNAL_SERVER_ERROR));
 					return true;
 				}
 			}
@@ -75,6 +74,19 @@ bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpR
 	return false;
 }
 
+std::string resolveSystemPath(const std::string &routePath, const std::string &routeRoot,
+							  const std::string &reqPath) {
+	std::string relativePath = reqPath;
+
+	// strip route path (perifx) from request path (if not "/")
+	// e.g: request path /images/img1.png to route of path /images will result in relative path of
+	// /img1.png
+	if (routePath != "/" && reqPath.compare(0, routePath.length(), routePath) == 0) {
+		relativePath = reqPath.substr(routePath.length());
+	}
+	return routeRoot + relativePath;
+}
+
 // NOTE try to move raw response building into sub funcs and keep this highlevel
 void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd> &sockets,
 						std::map<int, struct SocketMeta> &socketsMeta, int clientFd) {
@@ -83,6 +95,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 												 generateErrorPage(HTTP_VERSION_NOT_SUPPORTED));
 		return;
 	}
+
 	if (req.method == INVALID) {
 		sMeta.responseBuf = generateHttpResponse(METHOD_NOT_ALLOWED, req.keepAlive,
 												 generateErrorPage(METHOD_NOT_ALLOWED));
@@ -104,6 +117,10 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 		return;
 	}
 
+	// TODO http redir #51 must be here
+	//
+	// if (rc->hasRedirect) {...}
+
 	if (std::find(rc->allowedMethods.begin(), rc->allowedMethods.end(),
 				  Utils::httpMethodToString(req.method)) == rc->allowedMethods.end()) {
 		sMeta.responseBuf = generateHttpResponse(METHOD_NOT_ALLOWED, req.keepAlive,
@@ -111,12 +128,15 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 		return;
 	}
 
-	if (isCgi(*rc, sMeta, req, sockets, socketsMeta, clientFd))
+	std::string systemPath = resolveSystemPath(rc->path, rc->root, req.path);
+
+	if (isCgi(*rc, sMeta, req, sockets, socketsMeta, clientFd, systemPath))
 		return;
 
+	// check if file exists unless it's a POST (might be upload)
 	struct stat st;
 	bool exist = true;
-	if (stat((sMeta.server.root + req.path).c_str(), &st) != 0) {
+	if (stat((systemPath).c_str(), &st) != 0) {
 		exist = false;
 		if (req.method != http::POST) {
 			sMeta.responseBuf =
@@ -126,24 +146,26 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	}
 
 	if (req.method == http::GET && rc->fileServer) {
+		// if requested a file
 		if ((st.st_mode & S_IFMT) == S_IFREG) {
-			getFile(sMeta, req);
+			getFile(sMeta, systemPath, req);
 			return;
 		}
+
+		// if requested a directory
+		// this shit needs some abstraction
 		if ((st.st_mode & S_IFMT) == S_IFDIR) {
-			if (!rc->default_file.empty()) {
-				try {
-					if (defaultFile(*rc, sMeta, req))
-						return;
-				} catch (const std::exception &e) {
-					sMeta.responseBuf =
-						generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-											 generateErrorPage(INTERNAL_SERVER_ERROR));
+			try {
+				if (defaultFile(*rc, sMeta, req, systemPath))
 					return;
-				}
+			} catch (const std::exception &e) {
+				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+														 generateErrorPage(INTERNAL_SERVER_ERROR));
+				return;
 			}
 			if (rc->fileBrowser) {
 				try {
+					// pass real path
 					directoryFiles(sMeta, req);
 					return;
 				} catch (const std::exception &e) {
@@ -154,28 +176,35 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 				}
 			}
 		}
-	} else if (req.method == http::POST) {
+	}
+
+	else if (req.method == http::POST) {
 		uploadFile(*rc, sMeta, req, st, exist);
 		return;
-	} else if (req.method == http::DELETE) {
+	}
+
+	else if (req.method == http::DELETE) {
 		if ((st.st_mode & S_IFMT) == S_IFREG) {
-			if (unlink((sMeta.server.root + req.path).c_str()) != 0) {
+			if (unlink((systemPath).c_str()) != 0) {
 				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
 														 generateErrorPage(INTERNAL_SERVER_ERROR));
 				return;
 			}
 		}
 		if ((st.st_mode & S_IFMT) == S_IFDIR) {
-			if (rmdir((sMeta.server.root + req.path).c_str()) != 0) {
+			if (rmdir((systemPath).c_str()) != 0) {
 				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
 														 generateErrorPage(INTERNAL_SERVER_ERROR));
 				return;
 			}
 		}
+		// the server.root + req.path can remain here for better UX
 		sMeta.responseBuf =
 			generateHttpResponse(OK, req.keepAlive, sMeta.server.root + req.path + ": is removed");
 		return;
 	}
+
+	// fallback
 	sMeta.responseBuf =
 		generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
 }
