@@ -120,7 +120,7 @@ std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std:
 // automatically picks up the body from the explicit response payload
 std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body,
 									   std::map<std::string, std::string> headers) {
-	headers["connection"] = keepAlive ? "keep-alive" : "close";
+	headers["Connection"] = keepAlive ? "keep-alive" : "close";
 	std::map<HTTPCode, std::string> codeMessages;
 	codeMessages[OK] = "OK";
 	codeMessages[HTTP_VERSION_NOT_SUPPORTED] = "HTTP Version Not Supported";
