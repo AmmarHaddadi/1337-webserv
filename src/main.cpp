@@ -8,14 +8,7 @@
 #include <iostream>
 
 namespace {
-bool hasPendingCgiPipe(std::map<int, struct SocketMeta> &socketsMeta, int clientFd) {
-	for (std::map<int, struct SocketMeta>::iterator it = socketsMeta.begin(); it != socketsMeta.end();
-		 ++it) {
-		if (it->second.isCgiPipe && it->second.clientFd == clientFd)
-			return true;
-	}
-	return false;
-}
+const size_t CGI_READ_BUFFER_SIZE = 2048;
 
 size_t findSocketIndex(std::vector<pollfd> &sockets, int fd) {
 	for (size_t i = 0; i < sockets.size(); ++i) {
@@ -39,7 +32,7 @@ void handleCgiPipe(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta
 	std::map<int, struct SocketMeta>::iterator clientIt = socketsMeta.find(pipeMeta.clientFd);
 	bool finalize = false;
 	bool failed = false;
-	char buf[2048];
+	char buf[CGI_READ_BUFFER_SIZE];
 	while (true) {
 		ssize_t bytesRead = read(socket.fd, buf, sizeof(buf));
 		if (bytesRead > 0) {
@@ -60,8 +53,9 @@ void handleCgiPipe(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta
 		return;
 
 	int status = 0;
-	waitpid(pipeMeta.cgiPid, &status, 0);
+	waitpid(pipeMeta.cgiPid, &status, WNOHANG);
 	if (clientIt != socketsMeta.end()) {
+		clientIt->second.cgiPipeFd = -1;
 		if (failed) {
 			clientIt->second.responseBuf = http::generateHttpResponse(
 				http::INTERNAL_SERVER_ERROR, !clientIt->second.closeAfterResponse,
@@ -143,7 +137,7 @@ int main(int ac, char **av) {
 				handled = true;
 			}
 			// close stale connection
-			if (!handled && !hasPendingCgiPipe(socketsMeta, socket.fd) &&
+			if (!handled && sMeta.cgiPipeFd == -1 &&
 				std::difftime(std::time(0), sMeta.lastEvent) > TCP_TIMEOUT) {
 				closeDelSocket(sockets, sIdx, socketsMeta);
 				--sIdx;

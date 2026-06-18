@@ -152,7 +152,7 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 		sMeta.closeAfterResponse = !req.keepAlive;
 		int clientFd = socket.fd;
 		http::respondToReq(sMeta, req, sockets, socketsMeta, clientFd);
-		sockets[sIdx].events = sMeta.responseBuf.empty() ? 0 : POLLOUT;
+		sockets[sIdx].events = sMeta.cgiPipeFd != -1 ? 0 : POLLOUT;
 	}
 	return 0;
 }

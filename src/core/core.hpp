@@ -18,7 +18,7 @@ extern CoreLogger coreLogger;
 struct SocketMeta {
 	explicit SocketMeta(Config::ServerConfig &scRef)
 		: server(scRef), lastEvent(std::time(0)),
-		  closeAfterResponse(true), isCgiPipe(false), clientFd(-1), cgiPid(-1) {}
+		  closeAfterResponse(true), isCgiPipe(false), cgiPipeFd(-1), clientFd(-1), cgiPid(-1) {}
 	// int fd; // can be found in the sockets vector type pollFd
 	// std::string port;
 	Config::ServerConfig &server; // parent server config
@@ -27,6 +27,7 @@ struct SocketMeta {
 	std::time_t lastEvent;
 	bool closeAfterResponse;
 	bool isCgiPipe;
+	int cgiPipeFd;
 	int clientFd;
 	pid_t cgiPid;
 };

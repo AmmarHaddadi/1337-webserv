@@ -42,9 +42,13 @@ bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpR
 					}
 					if (written < 0 && errno == EINTR)
 						continue;
-					close(outFd);
-					close(inFd);
-					waitpid(pid, NULL, 0);
+					if (outFd == inFd) {
+						close(outFd);
+					} else {
+						close(outFd);
+						close(inFd);
+					}
+					waitpid(pid, NULL, WNOHANG);
 					sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
 															 generateErrorPage(INTERNAL_SERVER_ERROR));
 					return true;
@@ -61,6 +65,7 @@ bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpR
 			pipeMeta.clientFd = clientFd;
 			pipeMeta.cgiPid = pid;
 			socketsMeta.insert(std::make_pair(outFd, pipeMeta));
+			sMeta.cgiPipeFd = outFd;
 		} catch (const std::exception &e) {
 			sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
 													 generateErrorPage(INTERNAL_SERVER_ERROR));
