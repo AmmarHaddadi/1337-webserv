@@ -150,8 +150,9 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 		}
 		http::printHttpRequest(req);
 		sMeta.closeAfterResponse = !req.keepAlive;
-		http::respondToReq(sMeta, req);
-		socket.events = POLLOUT;
+		int clientFd = socket.fd;
+		http::respondToReq(sMeta, req, sockets, socketsMeta, clientFd);
+		sockets[sIdx].events = sMeta.responseBuf.empty() ? 0 : POLLOUT;
 	}
 	return 0;
 }

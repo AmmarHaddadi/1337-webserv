@@ -1,7 +1,16 @@
 #include "cgi.hpp"
 #include "../shared/utils.hpp"
+#include <fcntl.h>
 
 using namespace CGI;
+
+namespace {
+void setPipeNonblock(int fd) {
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags != -1)
+		fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
+} // namespace
 
 Cgi::Cgi(std::map<std::string, std::string> &initCgiMap, http::HttpRequest &initStructRequest)
 	: cgiMap(initCgiMap), structRequest(initStructRequest) {
@@ -62,8 +71,7 @@ std::string Cgi::findRunner() const {
 	return (runnerScript);
 }
 
-std::string Cgi::executeCGI(const std::string &root) {
-	std::string responseScript;
+pid_t Cgi::executeCGI(const std::string &root, int &outReadFd, int &inWriteFd) {
 	std::string runnerScript = findRunner();
 	std::string fixPath = root + structRequest.path;
 	std::vector<std::string> helpBuildEnvp = buildEnvp();
@@ -77,6 +85,8 @@ std::string Cgi::executeCGI(const std::string &root) {
 	for (size_t i = 0; i < helpBuildEnvp.size(); i++)
 		envp.push_back(const_cast<char *>(helpBuildEnvp[i].c_str()));
 	envp.push_back(NULL);
+	outReadFd = -1;
+	inWriteFd = -1;
 	if (pipe(outPipe) == -1 || pipe(inPipe) == -1) {
 		closePipe();
 		throw std::runtime_error("Run-time Error: pipe() failed");
@@ -98,28 +108,16 @@ std::string Cgi::executeCGI(const std::string &root) {
 	} else {
 		close(inPipe[0]);
 		close(outPipe[1]);
-		if (!structRequest.body.empty())
-			write(inPipe[1], structRequest.body.c_str(), structRequest.body.length());
-		close(inPipe[1]);
-		inPipe[1] = -1;
-		char buf[1024];
-		ssize_t bytesRead;
-		int status;
-		while ((bytesRead = read(outPipe[0], buf, sizeof(buf))) > 0)
-			responseScript.append(buf, bytesRead);
-		close(outPipe[0]);
+		outReadFd = outPipe[0];
+		inWriteFd = inPipe[1];
+		inPipe[0] = -1;
 		outPipe[0] = -1;
-		waitpid(pid, &status, 0);
-		if (WIFEXITED(status)) {
-			if (WEXITSTATUS(status) == 1)
-				throw std::runtime_error("Run-time Error: dup2() failed");
-			if (WEXITSTATUS(status) == 2)
-				throw std::runtime_error("Run-time Error: execve() failed");
-		}
-		if (WIFSIGNALED(status) && WTERMSIG(status) == SIGALRM)
-			throw std::runtime_error("Script timeout");
+		inPipe[1] = -1;
+		outPipe[1] = -1;
+		setPipeNonblock(outReadFd);
+		setPipeNonblock(inWriteFd);
 	}
-	return (responseScript);
+	return pid;
 }
 
 Cgi::~Cgi() { closePipe(); }
