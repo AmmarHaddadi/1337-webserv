@@ -102,7 +102,7 @@ pid_t Cgi::executeCGI(const std::string &root, int &outReadFd, int &inWriteFd) {
 			_exit(1);
 		}
 		closePipe();
-		alarm(TCP_TIMEOUT);
+		alarm(CGI_TIMEOUT);
 		if (execve(argv[0], argv, &envp[0]) == -1)
 			_exit(2);
 	} else {
