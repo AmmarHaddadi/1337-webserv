@@ -2,8 +2,77 @@
 #include "cfg/cfg.hpp"
 #include "cgi/cgi.hpp"
 #include "core/core.hpp"
+#include "http/response/response.hpp"
+#include <cerrno>
 #include <exception>
 #include <iostream>
+
+namespace {
+const size_t CGI_READ_BUFFER_SIZE = 2048;
+
+size_t findSocketIndex(std::vector<pollfd> &sockets, int fd) {
+	for (size_t i = 0; i < sockets.size(); ++i) {
+		if (sockets[i].fd == fd)
+			return i;
+	}
+	return sockets.size();
+}
+
+void handleCgiPipe(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+				   size_t &sIdx) {
+	pollfd &socket = sockets[sIdx];
+	std::map<int, struct SocketMeta>::iterator metaIt = socketsMeta.find(socket.fd);
+	if (metaIt == socketsMeta.end())
+		return;
+
+	SocketMeta &pipeMeta = metaIt->second;
+	if (!pipeMeta.isCgiPipe)
+		return;
+
+	std::map<int, struct SocketMeta>::iterator clientIt = socketsMeta.find(pipeMeta.clientFd);
+	bool finalize = false;
+	bool failed = false;
+	char buf[CGI_READ_BUFFER_SIZE];
+	while (true) {
+		ssize_t bytesRead = read(socket.fd, buf, sizeof(buf));
+		if (bytesRead > 0) {
+			if (clientIt != socketsMeta.end())
+				clientIt->second.responseBuf.append(buf, bytesRead);
+			continue;
+		}
+		if (bytesRead == 0) {
+			finalize = true;
+			break;
+		}
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			break;
+		failed = true;
+		break;
+	}
+	if (!finalize && !failed)
+		return;
+
+	int status = 0;
+	waitpid(pipeMeta.cgiPid, &status, WNOHANG);
+	if (clientIt != socketsMeta.end()) {
+		clientIt->second.cgiPipeFd = -1;
+		if (failed) {
+			clientIt->second.responseBuf = http::generateHttpResponse(
+				http::INTERNAL_SERVER_ERROR, !clientIt->second.closeAfterResponse,
+				http::generateErrorPage(http::INTERNAL_SERVER_ERROR));
+		} else {
+			clientIt->second.responseBuf = http::generateHttpResponse(
+				http::OK, !clientIt->second.closeAfterResponse, clientIt->second.responseBuf);
+		}
+		size_t clientIdx = findSocketIndex(sockets, pipeMeta.clientFd);
+		if (clientIdx < sockets.size())
+			sockets[clientIdx].events = POLLOUT;
+	}
+
+	closeDelSocket(sockets, sIdx, socketsMeta);
+	--sIdx;
+}
+} // namespace
 
 int main(int ac, char **av) {
 	if (ac > 2) {
@@ -46,6 +115,11 @@ int main(int ac, char **av) {
 			pollfd &socket = sockets[sIdx];
 			SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 
+			if (sMeta.isCgiPipe) {
+				handleCgiPipe(sockets, socketsMeta, sIdx);
+				continue;
+			}
+
 			if ((socket.revents & (POLLHUP | POLLERR)) != 0) {
 				closeDelSocket(sockets, sIdx, socketsMeta);
 				--sIdx;
@@ -55,12 +129,16 @@ int main(int ac, char **av) {
 			if ((socket.revents & POLLIN) != 0) {
 				if (handleReq(sockets, socketsMeta, sIdx) == 1)
 					continue;
+			}
 
-			} else if ((socket.revents & POLLOUT) != 0) {
+			bool handled = false;
+			if ((socket.revents & POLLOUT) != 0) {
 				handleRes(sockets, socketsMeta, sIdx);
+				handled = true;
 			}
 			// close stale connection
-			else if (std::difftime(std::time(0), sMeta.lastEvent) > TCP_TIMEOUT) {
+			if (!handled && sMeta.cgiPipeFd == -1 &&
+				std::difftime(std::time(0), sMeta.lastEvent) > TCP_TIMEOUT) {
 				closeDelSocket(sockets, sIdx, socketsMeta);
 				--sIdx;
 			}

@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include <vector>
 
+#define CGI_TIMEOUT 5
+
 namespace CGI {
 
 class Cgi {
@@ -29,7 +31,7 @@ class Cgi {
   public:
 	Cgi(std::map<std::string, std::string> &initCgiMap, http::HttpRequest &initStructRequest);
 	~Cgi();
-	std::string executeCGI(const std::string &root);
+	pid_t executeCGI(const std::string &root, int &outReadFd, int &inWriteFd);
 };
 
 } // namespace CGI
