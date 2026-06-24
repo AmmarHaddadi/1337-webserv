@@ -2,6 +2,7 @@
 #include "../http/http.hpp"
 #include "../http/parser/Parser.hpp"
 #include "../http/response/response.hpp"
+#include "../shared/utils.hpp"
 #include <fcntl.h>
 
 int setNonblock(int listenerFd) {
@@ -149,8 +150,9 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 		}
 		http::printHttpRequest(req);
 		sMeta.closeAfterResponse = !req.keepAlive;
-		http::respondToReq(sMeta, req);
-		socket.events = POLLOUT;
+		int clientFd = socket.fd;
+		http::respondToReq(sMeta, req, sockets, socketsMeta, clientFd);
+		sockets[sIdx].events = sMeta.cgiPipeFd != -1 ? 0 : POLLOUT;
 	}
 	return 0;
 }

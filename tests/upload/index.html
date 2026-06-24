@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1337 WebServ</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f172a;
+            color: #00ff88;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            border: 2px solid #00ff88;
+            padding: 40px;
+            border-radius: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 25px #00ff88;
+        }
+
+        h1 {
+            font-size: 60px;
+            margin: 0;
+            text-shadow: 0 0 20px #00ff88;
+        }
+
+        h2 {
+            margin-top: 10px;
+            color: white;
+            font-weight: normal;
+        }
+
+        p {
+            margin-top: 20px;
+            color: #cbd5e1;
+        }
+
+        .status {
+            margin-top: 25px;
+            padding: 10px;
+            background: #00ff88;
+            color: black;
+            font-weight: bold;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .matrix {
+            position: absolute;
+            color: rgba(0,255,136,0.08);
+            font-size: 22px;
+            white-space: nowrap;
+            animation: move 20s linear infinite;
+        }
+
+        @keyframes move {
+            from {
+                transform: translateY(-100vh);
+            }
+            to {
+                transform: translateY(100vh);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="matrix">
+        WEBSERV 1337 CGI GET POST DELETE HTTP/1.1 SOCKETS POLL FORK EXECVE
+    </div>
+
+    <div class="container">
+        <h1>WEBSERV</h1>
+        <h2>1337 Network Project</h2>
+
+        <p>
+            Your custom HTTP server is running successfully 🚀
+        </p>
+
+        <div class="status">
+            STATUS: 200 OK
+        </div>
+    </div>

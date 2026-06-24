@@ -1,28 +1,88 @@
 #include "../../cfg/cfg.hpp"
+#include "../../cgi/cgi.hpp"
 #include "../../core/core.hpp"
 #include "../../shared/utils.hpp"
 #include "../http.hpp"
 #include "response.hpp"
+#include <cerrno>
 #include <algorithm>
 #include <fcntl.h>
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <vector>
 
 using namespace http;
 
+bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
+				 std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
+				 int clientFd) {
+	size_t pos = req.path.rfind('.');
+	if (pos != std::string::npos) {
+		std::string ext = req.path.substr(pos + 1);
+		std::map<std::string, std::string>::iterator it = rc.cgi.find(ext);
+		if (it == rc.cgi.end())
+			return false;
+		CGI::Cgi cgi(rc.cgi, req);
+		try {
+			int outFd = -1;
+			int inFd = -1;
+			pid_t pid = cgi.executeCGI(sMeta.server.root, outFd, inFd);
+			if (!req.body.empty()) {
+				size_t totalWritten = 0;
+				while (totalWritten < req.body.size()) {
+					ssize_t written = write(inFd, req.body.c_str() + totalWritten,
+											req.body.size() - totalWritten);
+					if (written > 0) {
+						totalWritten += static_cast<size_t>(written);
+						continue;
+					}
+					if (written < 0 && errno == EINTR)
+						continue;
+					if (outFd == inFd) {
+						close(outFd);
+					} else {
+						close(outFd);
+						close(inFd);
+					}
+					waitpid(pid, NULL, WNOHANG);
+					sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+															 generateErrorPage(INTERNAL_SERVER_ERROR));
+					return true;
+				}
+			}
+			close(inFd);
+			int socketFlags = fcntl(outFd, F_GETFL, 0);
+			if (socketFlags != -1)
+				fcntl(outFd, F_SETFL, socketFlags | O_NONBLOCK);
+			pollfd cgiPfd = {outFd, POLLIN, 0};
+			sockets.push_back(cgiPfd);
+			SocketMeta pipeMeta(sMeta.server);
+			pipeMeta.isCgiPipe = true;
+			pipeMeta.clientFd = clientFd;
+			pipeMeta.cgiPid = pid;
+			socketsMeta.insert(std::make_pair(outFd, pipeMeta));
+			sMeta.cgiPipeFd = outFd;
+		} catch (const std::exception &e) {
+			sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+													 generateErrorPage(INTERNAL_SERVER_ERROR));
+		}
+		return true;
+	}
+	return false;
+}
+
 // NOTE try to move raw response building into sub funcs and keep this highlevel
-void http::respondToReq(SocketMeta &sMeta, const HttpRequest &req) {
+void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd> &sockets,
+						std::map<int, struct SocketMeta> &socketsMeta, int clientFd) {
 	if (req.version != HTTP_VER) {
 		sMeta.responseBuf = generateHttpResponse(HTTP_VERSION_NOT_SUPPORTED, req.keepAlive,
 												 generateErrorPage(HTTP_VERSION_NOT_SUPPORTED));
 		return;
 	}
-
 	if (req.method == INVALID) {
 		sMeta.responseBuf = generateHttpResponse(METHOD_NOT_ALLOWED, req.keepAlive,
 												 generateErrorPage(METHOD_NOT_ALLOWED));
@@ -51,38 +111,73 @@ void http::respondToReq(SocketMeta &sMeta, const HttpRequest &req) {
 		return;
 	}
 
-	if (req.method == http::GET) {
-		// more checks
-		struct stat st;
-		if (stat((sMeta.server.root + req.path).c_str(), &st) != 0) {
+	if (isCgi(*rc, sMeta, req, sockets, socketsMeta, clientFd))
+		return;
+
+	struct stat st;
+	bool exist = true;
+	if (stat((sMeta.server.root + req.path).c_str(), &st) != 0) {
+		exist = false;
+		if (req.method != http::POST) {
 			sMeta.responseBuf =
 				generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
 			return;
 		}
+	}
 
-		// HINT S_IFREG = file S_IFDIR = dir
+	if (req.method == http::GET && rc->fileServer) {
 		if ((st.st_mode & S_IFMT) == S_IFREG) {
 			getFile(sMeta, req);
 			return;
 		}
-
+		if ((st.st_mode & S_IFMT) == S_IFDIR) {
+			if (!rc->default_file.empty()) {
+				try {
+					if (defaultFile(*rc, sMeta, req))
+						return;
+				} catch (const std::exception &e) {
+					sMeta.responseBuf =
+						generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+											 generateErrorPage(INTERNAL_SERVER_ERROR));
+					return;
+				}
+			}
+			if (rc->fileBrowser) {
+				try {
+					directoryFiles(sMeta, req);
+					return;
+				} catch (const std::exception &e) {
+					sMeta.responseBuf =
+						generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+											 generateErrorPage(INTERNAL_SERVER_ERROR));
+					return;
+				}
+			}
+		}
+	} else if (req.method == http::POST) {
+		uploadFile(*rc, sMeta, req, st, exist);
+		return;
+	} else if (req.method == http::DELETE) {
+		if ((st.st_mode & S_IFMT) == S_IFREG) {
+			if (unlink((sMeta.server.root + req.path).c_str()) != 0) {
+				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+														 generateErrorPage(INTERNAL_SERVER_ERROR));
+				return;
+			}
+		}
+		if ((st.st_mode & S_IFMT) == S_IFDIR) {
+			if (rmdir((sMeta.server.root + req.path).c_str()) != 0) {
+				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+														 generateErrorPage(INTERNAL_SERVER_ERROR));
+				return;
+			}
+		}
 		sMeta.responseBuf =
-			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
+			generateHttpResponse(OK, req.keepAlive, sMeta.server.root + req.path + ": is removed");
 		return;
 	}
-
-	if (req.method == POST) {
-		// temportary until cgi is implemented, just echoing back the body
-		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, req.body);
-		return;
-	}
-
-	// if is file and exists
-	//   if ends with cgi extension run cgi
-	//   else serve file (if GET and file_serve is true)
-	// else if path
-	//   if default file is defined and exists serve it
-	//   else if file browser is true serve the file browser
+	sMeta.responseBuf =
+		generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
 }
 
 std::string http::generateHtmlPage(const std::string &title, const std::string &body) {
@@ -147,4 +242,18 @@ std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std:
 	oss << body;
 
 	return oss.str();
+}
+
+std::string http::generateHttpResponseDirectory(const std::string &path,
+												std::vector<std::string> &files) {
+	std::ostringstream oss;
+
+	for (size_t i = 0; i < files.size(); i++) {
+		oss << "<p><a href=\"";
+		oss << path + files[i];
+		oss << "\">";
+		oss << files[i];
+		oss << "</a></p>";
+	}
+	return (generateHtmlPage("Index directory " + path, oss.str()));
 }

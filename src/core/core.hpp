@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../cfg/cfg.hpp"
+#include <cerrno>
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
@@ -16,15 +17,19 @@
 extern CoreLogger coreLogger;
 struct SocketMeta {
 	explicit SocketMeta(Config::ServerConfig &scRef)
-		: lastEvent(std::time(0)), closeAfterResponse(true), server(scRef) {};
+		: server(scRef), lastEvent(std::time(0)),
+		  closeAfterResponse(true), isCgiPipe(false), cgiPipeFd(-1), clientFd(-1), cgiPid(-1) {}
 	// int fd; // can be found in the sockets vector type pollFd
 	// std::string port;
-	std::time_t lastEvent;
+	Config::ServerConfig &server; // parent server config
 	std::string requestBuf;
 	std::string responseBuf;
+	std::time_t lastEvent;
 	bool closeAfterResponse;
-	// TODO XXX has to be const in a way or other
-	Config::ServerConfig &server; // parent server config
+	bool isCgiPipe;
+	int cgiPipeFd;
+	int clientFd;
+	pid_t cgiPid;
 };
 
 // functions
