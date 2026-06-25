@@ -117,9 +117,6 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 		return;
 	}
 
-	// TODO http redir #51 must be here
-	//
-	// if (rc->hasRedirect) {...}
 
 	if (std::find(rc->allowedMethods.begin(), rc->allowedMethods.end(),
 				  Utils::httpMethodToString(req.method)) == rc->allowedMethods.end()) {
@@ -130,6 +127,13 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 
 	std::string systemPath = resolveSystemPath(rc->path, rc->root, req.path);
 
+	if (rc->hasRedirect) {
+		std::map<std::string, std::string> headers;
+		headers["Location"] = rc->redirectLocation;
+		sMeta.responseBuf = generateHttpResponse(TEMPORARY_REDIRECT, req.keepAlive, "", headers);
+		return;
+	}
+	
 	if (isCgi(*rc, sMeta, req, sockets, socketsMeta, clientFd, systemPath))
 		return;
 
@@ -221,6 +225,7 @@ std::string http::generateErrorPage(HTTPCode code) {
 	// TODO move to a global scope & init once
 	std::map<HTTPCode, std::string> codeMessages;
 	codeMessages[OK] = "OK";
+	codeMessages[TEMPORARY_REDIRECT] = "Temporary Redirect";
 	codeMessages[HTTP_VERSION_NOT_SUPPORTED] = "HTTP Version Not Supported";
 	codeMessages[METHOD_NOT_ALLOWED] = "Method Not Allowed";
 	codeMessages[BAD_REQUEST] = "Bad Request";
@@ -244,9 +249,11 @@ std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std:
 // automatically picks up the body from the explicit response payload
 std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body,
 									   std::map<std::string, std::string> headers) {
+
 	headers["connection"] = keepAlive ? "keep-alive" : "close";
 	std::map<HTTPCode, std::string> codeMessages;
 	codeMessages[OK] = "OK";
+	codeMessages[TEMPORARY_REDIRECT] = "Temporary Redirect";
 	codeMessages[HTTP_VERSION_NOT_SUPPORTED] = "HTTP Version Not Supported";
 	codeMessages[METHOD_NOT_ALLOWED] = "Method Not Allowed";
 	codeMessages[BAD_REQUEST] = "Bad Request";
