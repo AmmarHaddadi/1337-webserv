@@ -139,8 +139,7 @@ void Parser::parseRouteDirective(const KindVal &directive, ServerConfig::RouteCo
 			rc.allowedMethods.push_back("POST");
 		}
 		rc.uploadEnabled = true;
-		rc.uploadPath = expect(WORD, "").val;
-
+		// rc.uploadPath = expect(WORD, "").val; // deprecated in favor of route root for simplicity
 	}
 
 	else if (directive.val == "redirect") {

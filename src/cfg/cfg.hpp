@@ -27,7 +27,7 @@ class ServerConfig {
 		std::string default_file;
 
 		bool uploadEnabled;
-		std::string uploadPath;
+		// std::string uploadPath;
 
 		bool hasRedirect;
 		int redirectCode;

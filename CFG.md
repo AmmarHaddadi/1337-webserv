@@ -58,7 +58,7 @@ Example:
     max_body_sz 2048
 
     handle /upload {
-        upload_enabled /tmp/uploads
+        upload_enabled 
     }
 }
 ```
@@ -214,23 +214,17 @@ default_file <path>
 **Scope:** route  
 **Syntax:**
 ```caddyfile
-upload_enabled <path>
+upload_enabled 
 ```
 
 - **Required:** no  
 - Enables file uploads for this route.
-- `path` is required, uploaded files are saved there.
+- upload path will be the route's root
 
 Examples:
 ```caddyfile
 handle /abc {
-    upload_enabled /tmp/uplaods
-}
-```
-
-```caddyfile
-handle /abc {
-    upload_enabled /var/user_data
+    upload_enabled
 }
 ```
 
@@ -318,7 +312,7 @@ handle / {
     max_body_sz 1024
 
     handle /upload {
-        upload_enabled /tmp/uploads
+        upload_enabled
     }
 
     handle /old {
