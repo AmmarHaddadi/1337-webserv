@@ -193,6 +193,13 @@ HttpRequest http::parseHttp(std::string &reqBuf, size_t maxBodySize) {
 		size_t totalConsumed = headersEnd + 4 + contentLenSize;
 		if (totalConsumed <= reqBuf.size())
 			reqBuf.erase(0, totalConsumed);
+
+		return req;
+	}
+
+	size_t totalConsumed = headersEnd + 4;
+	if (totalConsumed <= reqBuf.size()) {
+		reqBuf.erase(0, totalConsumed);
 	}
 
 	return req;

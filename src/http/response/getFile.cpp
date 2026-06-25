@@ -15,7 +15,7 @@ void http::getFile(SocketMeta &sMeta, const std::string &systemPath, const HttpR
 			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
 	} else {
 		std::map<std::string, std::string> hdr;
-		hdr["Content-type"] = Utils::getMimeType(req.path);
+		hdr["Content-type"] = Utils::getMimeType(systemPath);
 		std::stringstream buffer;
 		buffer << file.rdbuf();
 		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, buffer.str(), hdr);
