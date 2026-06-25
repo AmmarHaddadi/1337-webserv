@@ -71,9 +71,9 @@ std::string Cgi::findRunner() const {
 	return (runnerScript);
 }
 
-pid_t Cgi::executeCGI(const std::string &root, int &outReadFd, int &inWriteFd) {
+pid_t Cgi::executeCGI(const std::string &realSysPath, int &outReadFd, int &inWriteFd) {
 	std::string runnerScript = findRunner();
-	std::string fixPath = root + structRequest.path;
+	std::string fixPath = realSysPath; 
 	std::vector<std::string> helpBuildEnvp = buildEnvp();
 	char *argv[] = {
 		const_cast<char *>(runnerScript.c_str()),

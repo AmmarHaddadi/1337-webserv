@@ -86,6 +86,13 @@ int main(int ac, char **av) {
 		Config::Parser parser(tokens);
 		servers = parser.parse();
 		Config::Checker::check(servers);
+#ifdef CFG_DEBUG
+		for (size_t i = 0; i < servers.size(); ++i) {
+			std::cout << "=== Server " << i << " ===\n";
+			Config::debugServerConfig(servers[i]);
+		}
+#endif
+
 	} catch (std::exception &e) {
 		cfgLogger.error(e.what());
 		return 1;

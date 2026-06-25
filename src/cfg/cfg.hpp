@@ -27,7 +27,7 @@ class ServerConfig {
 		std::string default_file;
 
 		bool uploadEnabled;
-		std::string uploadPath;
+		// std::string uploadPath;
 
 		bool hasRedirect;
 		int redirectCode;
@@ -92,5 +92,7 @@ class Parser {
 namespace Checker {
 void check(const std::vector<ServerConfig> &scv);
 } // namespace Checker
+
+void debugServerConfig(const Config::ServerConfig &config);
 
 }; // namespace Config
