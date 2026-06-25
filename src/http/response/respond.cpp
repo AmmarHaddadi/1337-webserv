@@ -166,7 +166,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 			if (rc->fileBrowser) {
 				try {
 					// pass real path
-					directoryFiles(sMeta, req);
+					directoryFiles(sMeta, req, systemPath);
 					return;
 				} catch (const std::exception &e) {
 					sMeta.responseBuf =
