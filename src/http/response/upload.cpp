@@ -5,6 +5,29 @@
 
 using namespace http;
 
+bool createDirectory(const std::string &srcPath) {
+	struct stat st;
+	bool dir = 0;
+    std::stringstream ss(srcPath);
+    std::string buffer;
+    std::string fnl;
+	std::string oldDir;
+
+    while (getline(ss, buffer, '/')) {
+        fnl.append(buffer + "/");
+		if (dir == 1) {
+			int ret = mkdir(oldDir.c_str(), 0755);
+			if (ret == -1)
+				return 0;
+			dir = 0;
+		}
+		if (stat(fnl.c_str(), &st) != 0)
+			dir = 1;
+		oldDir = fnl;
+    }
+	return 1;
+}
+
 void http::uploadFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
 					  struct stat &st, std::string &resolvedPath, bool exist) {
 	if (rc.uploadEnabled && req.path[req.path.length() - 1] != '/') {
@@ -15,6 +38,9 @@ void http::uploadFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, 
 				return;
 			}
 		}
+		if (!createDirectory(resolvedPath))
+			sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+													 generateErrorPage(INTERNAL_SERVER_ERROR));
 		std::ofstream file((resolvedPath).c_str(), std::ios::binary);
 		if (!file) {
 			sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
