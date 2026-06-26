@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <vector>
 
-#define CGI_TIMEOUT 5
+#define CGI_TIMEOUT 10
 
 namespace CGI {
 

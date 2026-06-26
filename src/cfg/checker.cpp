@@ -115,7 +115,7 @@ void Checker::check(const std::vector<ServerConfig> &scv) {
 			checkRoot(rc.root);
 			checkMethods(rc.allowedMethods);
 			if (rc.uploadEnabled)
-				checkUploadPath(rc.uploadPath);
+				checkUploadPath(rc.root);
 			if (rc.hasRedirect)
 				checkRedirect(rc.redirectCode);
 			checkCGI(rc.cgi);

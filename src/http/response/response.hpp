@@ -26,5 +26,5 @@ void directoryFiles(SocketMeta &sMeta, HttpRequest &req, std::string &systemPath
 bool defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
 				 std::string &resolvedPath);
 void uploadFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
-				struct stat &st, bool exist);
+				struct stat &st, std::string &resolvedPath, bool exist);
 } // namespace http

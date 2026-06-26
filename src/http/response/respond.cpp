@@ -38,7 +38,7 @@ bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpR
 						totalWritten += static_cast<size_t>(written);
 						continue;
 					}
-					if (written < 0 && errno == EINTR)
+					if (written < 0)
 						continue;
 					if (outFd == inFd) {
 						close(outFd);
@@ -127,13 +127,14 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 
 	std::string systemPath = resolveSystemPath(rc->path, rc->root, req.path);
 
+
 	if (rc->hasRedirect) {
 		std::map<std::string, std::string> headers;
 		headers["Location"] = rc->redirectLocation;
 		sMeta.responseBuf = generateHttpResponse(TEMPORARY_REDIRECT, req.keepAlive, "", headers);
 		return;
 	}
-	
+
 	if (isCgi(*rc, sMeta, req, sockets, socketsMeta, clientFd, systemPath))
 		return;
 
@@ -184,6 +185,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 
 	else if (req.method == http::POST) {
 		uploadFile(*rc, sMeta, req, st, exist);
+
 		return;
 	}
 
@@ -204,7 +206,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 		}
 		// the server.root + req.path can remain here for better UX
 		sMeta.responseBuf =
-			generateHttpResponse(OK, req.keepAlive, sMeta.server.root + req.path + ": is removed");
+			generateHttpResponse(OK, req.keepAlive, req.path + ": is removed");
 		return;
 	}
 
