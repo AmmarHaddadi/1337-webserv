@@ -13,7 +13,7 @@ void getFile(SocketMeta &sMeta, const std::string &systemPath, const HttpRequest
 
 // helpers
 std::string generateHtmlPage(const std::string &title, const std::string &body);
-std::string generateErrorPage(HTTPCode code);
+std::string generateErrorPage(Config::ServerConfig &server, HTTPCode code);
 
 std::string generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body);
 std::string generateHttpResponse(HTTPCode code, bool keepAlive, const std::string &body,

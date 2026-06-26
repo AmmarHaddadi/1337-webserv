@@ -34,17 +34,17 @@ void http::uploadFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, 
 		if (exist && (st.st_mode & S_IFMT) == S_IFREG) {
 			if (unlink((resolvedPath).c_str()) != 0) {
 				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-														 generateErrorPage(INTERNAL_SERVER_ERROR));
+														 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
 				return;
 			}
 		}
 		if (!createDirectory(resolvedPath))
 			sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-													 generateErrorPage(INTERNAL_SERVER_ERROR));
+													 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
 		std::ofstream file((resolvedPath).c_str(), std::ios::binary);
 		if (!file) {
 			sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-													 generateErrorPage(INTERNAL_SERVER_ERROR));
+													 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
 			return;
 		}
 		file.write(req.body.c_str(), static_cast<unsigned int>(req.body.length()));
@@ -53,5 +53,5 @@ void http::uploadFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, 
 			OK, req.keepAlive, req.path.substr(req.path.rfind('/') + 1) + ": is created");
 	} else
 		sMeta.responseBuf =
-			generateHttpResponse(BAD_REQUEST, req.keepAlive, generateErrorPage(BAD_REQUEST));
+			generateHttpResponse(BAD_REQUEST, req.keepAlive, generateErrorPage(sMeta.server, BAD_REQUEST));
 }

@@ -30,6 +30,7 @@ void handleCgiPipe(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta
 		return;
 
 	std::map<int, struct SocketMeta>::iterator clientIt = socketsMeta.find(pipeMeta.clientFd);
+	SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second;
 	bool finalize = false;
 	bool failed = false;
 	char buf[CGI_READ_BUFFER_SIZE];
@@ -59,7 +60,7 @@ void handleCgiPipe(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta
 		if (failed) {
 			clientIt->second.responseBuf = http::generateHttpResponse(
 				http::INTERNAL_SERVER_ERROR, !clientIt->second.closeAfterResponse,
-				http::generateErrorPage(http::INTERNAL_SERVER_ERROR));
+				http::generateErrorPage(sMeta.server, http::INTERNAL_SERVER_ERROR));
 		} else {
 			clientIt->second.responseBuf = http::generateHttpResponse(
 				http::OK, !clientIt->second.closeAfterResponse, clientIt->second.responseBuf);

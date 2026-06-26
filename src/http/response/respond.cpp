@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cerrno>
 #include <fcntl.h>
+#include <fstream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -31,14 +32,15 @@ std::string resolveSystemPath(const std::string &routePath, const std::string &r
 void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd> &sockets,
 						std::map<int, struct SocketMeta> &socketsMeta, int clientFd) {
 	if (req.version != HTTP_VER) {
-		sMeta.responseBuf = generateHttpResponse(HTTP_VERSION_NOT_SUPPORTED, req.keepAlive,
-												 generateErrorPage(HTTP_VERSION_NOT_SUPPORTED));
+		sMeta.responseBuf =
+			generateHttpResponse(HTTP_VERSION_NOT_SUPPORTED, req.keepAlive,
+								 generateErrorPage(sMeta.server, HTTP_VERSION_NOT_SUPPORTED));
 		return;
 	}
 
 	if (req.method == INVALID) {
-		sMeta.responseBuf = generateHttpResponse(METHOD_NOT_ALLOWED, req.keepAlive,
-												 generateErrorPage(METHOD_NOT_ALLOWED));
+		sMeta.responseBuf = generateHttpResponse(
+			METHOD_NOT_ALLOWED, req.keepAlive, generateErrorPage(sMeta.server, METHOD_NOT_ALLOWED));
 		return;
 	}
 
@@ -52,21 +54,19 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	}
 
 	if (rc == NULL) {
-		sMeta.responseBuf =
-			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
+		sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
+												 generateErrorPage(sMeta.server, NOT_FOUND));
 		return;
 	}
 
-
 	if (std::find(rc->allowedMethods.begin(), rc->allowedMethods.end(),
 				  Utils::httpMethodToString(req.method)) == rc->allowedMethods.end()) {
-		sMeta.responseBuf = generateHttpResponse(METHOD_NOT_ALLOWED, req.keepAlive,
-												 generateErrorPage(METHOD_NOT_ALLOWED));
+		sMeta.responseBuf = generateHttpResponse(
+			METHOD_NOT_ALLOWED, req.keepAlive, generateErrorPage(sMeta.server, METHOD_NOT_ALLOWED));
 		return;
 	}
 
 	std::string systemPath = resolveSystemPath(rc->path, rc->root, req.path);
-
 
 	if (rc->hasRedirect) {
 		std::map<std::string, std::string> headers;
@@ -84,8 +84,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	if (stat((systemPath).c_str(), &st) != 0) {
 		exist = false;
 		if (req.method != http::POST) {
-			sMeta.responseBuf =
-				generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
+			sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
+													 generateErrorPage(sMeta.server, NOT_FOUND));
 			return;
 		}
 	}
@@ -104,8 +104,9 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 				if (defaultFile(*rc, sMeta, req, systemPath))
 					return;
 			} catch (const std::exception &e) {
-				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-														 generateErrorPage(INTERNAL_SERVER_ERROR));
+				sMeta.responseBuf =
+					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
 				return;
 			}
 			if (rc->fileBrowser) {
@@ -114,9 +115,9 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 					directoryFiles(sMeta, req, systemPath);
 					return;
 				} catch (const std::exception &e) {
-					sMeta.responseBuf =
-						generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-											 generateErrorPage(INTERNAL_SERVER_ERROR));
+					sMeta.responseBuf = generateHttpResponse(
+						INTERNAL_SERVER_ERROR, req.keepAlive,
+						generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
 					return;
 				}
 			}
@@ -132,27 +133,28 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	else if (req.method == http::DELETE) {
 		if ((st.st_mode & S_IFMT) == S_IFREG) {
 			if (unlink((systemPath).c_str()) != 0) {
-				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-														 generateErrorPage(INTERNAL_SERVER_ERROR));
+				sMeta.responseBuf =
+					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
 				return;
 			}
 		}
 		if ((st.st_mode & S_IFMT) == S_IFDIR) {
 			if (rmdir((systemPath).c_str()) != 0) {
-				sMeta.responseBuf = generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-														 generateErrorPage(INTERNAL_SERVER_ERROR));
+				sMeta.responseBuf =
+					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
+										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
 				return;
 			}
 		}
 		// the server.root + req.path can remain here for better UX
-		sMeta.responseBuf =
-			generateHttpResponse(OK, req.keepAlive, req.path + ": is removed");
+		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, req.path + ": is removed");
 		return;
 	}
 
 	// fallback
 	sMeta.responseBuf =
-		generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
+		generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND));
 }
 
 std::string http::generateHtmlPage(const std::string &title, const std::string &body) {
@@ -163,7 +165,22 @@ std::string http::generateHtmlPage(const std::string &title, const std::string &
 	return oss.str();
 }
 
-std::string http::generateErrorPage(HTTPCode code) {
+std::string http::generateErrorPage(Config::ServerConfig &server, HTTPCode code) {
+	// if there is a defined error_page in config
+	std::map<int, std::string>::iterator it = server.errorPages.find(code);
+	if (it != server.errorPages.end()) {
+		std::ifstream file((server.root + "/" + it->second).c_str());
+		if (!file.is_open()) {
+			std::stringstream oss(INTERNAL_SERVER_ERROR);
+			std::string body = "<h1>" + oss.str() + " : " + "INTERNAL_SERVER_ERROR" + "</h1>";
+			return generateHtmlPage("INTERNAL_SERVER_ERROR", body);
+		} else {
+			std::stringstream buffer;
+			buffer << file.rdbuf();
+			return buffer.str();
+		}
+	}
+
 	// TODO move to a global scope & init once
 	std::map<HTTPCode, std::string> codeMessages;
 	codeMessages[OK] = "OK";

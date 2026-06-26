@@ -139,7 +139,7 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 		if (req.status == http::TOO_LARGE) {
 			sMeta.responseBuf =
 				http::generateHttpResponse(http::PAYLOAD_TOO_LARGE, req.keepAlive,
-										   http::generateErrorPage(http::PAYLOAD_TOO_LARGE));
+										   http::generateErrorPage(sMeta.server, http::PAYLOAD_TOO_LARGE));
 			sMeta.requestBuf.clear();
 			sMeta.closeAfterResponse = !req.keepAlive;
 			socket.events = POLLOUT;

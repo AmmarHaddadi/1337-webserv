@@ -12,7 +12,7 @@ void http::getFile(SocketMeta &sMeta, const std::string &systemPath, const HttpR
 	std::ifstream file(systemPath.c_str());
 	if (!file.is_open()) {
 		sMeta.responseBuf =
-			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(NOT_FOUND));
+			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND));
 	} else {
 		std::map<std::string, std::string> hdr;
 		hdr["Content-type"] = Utils::getMimeType(systemPath);
