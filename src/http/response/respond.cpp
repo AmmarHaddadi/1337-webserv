@@ -124,7 +124,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	}
 
 	else if (req.method == http::POST) {
-		uploadFile(*rc, sMeta, req, st, exist);
+		uploadFile(*rc, sMeta, req, st, systemPath, exist);
 
 		return;
 	}
