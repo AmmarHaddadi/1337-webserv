@@ -80,6 +80,10 @@ int main(int ac, char **av) {
 		std::cerr << "Error: only supported param is an optional <path/to/file.conf> \n";
 		return 1;
 	}
+	AV0 = av[0];
+	AV1 = "server.conf";
+	if (ac == 2)
+		AV1 = av[1];
 	std::string cfgFilePath = ac > 1 ? av[1] : "server.conf";
 	std::vector<Config::ServerConfig> servers;
 	try {

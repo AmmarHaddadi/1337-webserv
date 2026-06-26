@@ -132,7 +132,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 
 	else if (req.method == http::DELETE) {
 		if ((st.st_mode & S_IFMT) == S_IFREG) {
-			if (unlink((systemPath).c_str()) != 0) {
+			if (!checker_file(systemPath) || unlink((systemPath).c_str()) != 0) {
 				sMeta.responseBuf =
 					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
 										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));

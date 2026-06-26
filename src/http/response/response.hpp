@@ -5,6 +5,9 @@
 #include <string>
 #include <sys/stat.h>
 
+extern const char *AV0;
+extern const char *AV1;
+
 namespace http {
 void respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd> &sockets,
 				  std::map<int, struct SocketMeta> &socketsMeta, int clientFd);
@@ -22,6 +25,7 @@ std::string generateHttpResponseDirectory(const std::string &path, std::vector<s
 bool isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
 		   std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
 		   int clientFd, std::string &resolvedPath);
+bool checker_file(std::string &resolvedPath);
 void directoryFiles(SocketMeta &sMeta, HttpRequest &req, std::string &systemPath);
 bool defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
 				 std::string &resolvedPath);

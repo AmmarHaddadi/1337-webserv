@@ -8,6 +8,9 @@
 
 using namespace http;
 
+const char *AV0 = NULL;
+const char *AV1 = NULL;
+
 bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
 				 std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
 				 int clientFd, std::string &resolvedPath) {
@@ -65,4 +68,18 @@ bool http::isCgi(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpR
 		return true;
 	}
 	return false;
+}
+
+bool http::checker_file(std::string &resolvedPath) {
+	std::stringstream ss;
+	ss << AV0;
+	std::string argv0 = ss.str();
+	ss.clear();
+	ss.str("");
+	ss << AV1;
+	std::string argv1 = ss.str();
+	size_t pos = resolvedPath.rfind('/');
+	if (resolvedPath.substr(pos + 1) == argv0 || resolvedPath.substr(pos + 1) == argv1)
+		return false;
+	return true;
 }
