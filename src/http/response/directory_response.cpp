@@ -22,7 +22,7 @@ bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta,
 				}
 				if ((st.st_mode & S_IFMT) != S_IFREG) {
 					sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
-															 generateErrorPage(NOT_FOUND));
+															 generateErrorPage(sMeta.server, NOT_FOUND));
 					closedir(dr);
 					return true;
 				}
