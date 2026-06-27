@@ -53,7 +53,8 @@ int setupListener(const std::string &host, const std::string &port) {
 		return -1;
 	}
 	freeaddrinfo(res);
-	if (listen(listenerFd, 3) == -1) {
+	// SOMAXCONN is system max
+	if (listen(listenerFd, SOMAXCONN) == -1) {
 		close(listenerFd);
 		return -1;
 	}
@@ -97,11 +98,16 @@ void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerCo
 
 	for (size_t p = 0; p < servers.size(); p++) {
 		if ((sockets[p].revents & POLLIN) != 0) {
-			int newSocketFd = accpetNewSocket(sockets[p].fd);
-			if (newSocketFd == -1) {
-				coreLogger.warn("failed to accpet connection: " +
-								std::string(std::strerror(errno)));
-			} else {
+			while (true) {
+				int newSocketFd = accpetNewSocket(sockets[p].fd);
+				if (newSocketFd == -1) {
+					if (errno == EAGAIN || errno == EWOULDBLOCK) {
+						break; // queue is empty now
+					}
+					coreLogger.warn("failed to accept connection: " +
+									std::string(std::strerror(errno)));
+					break;
+				}
 				pollfd npfd = {newSocketFd, POLLIN, 0};
 				sockets.push_back(npfd);
 				SocketMeta newSocketMeta(servers[p]);
