@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <exception>
 #include <iostream>
+#include <sys/ioctl.h>
 
 namespace {
 const size_t CGI_READ_BUFFER_SIZE = 2048;
@@ -18,60 +19,92 @@ size_t findSocketIndex(std::vector<pollfd> &sockets, int fd) {
 	return sockets.size();
 }
 
-void handleCgiPipe(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
-				   size_t &sIdx) {
-	pollfd &socket = sockets[sIdx];
-	std::map<int, struct SocketMeta>::iterator metaIt = socketsMeta.find(socket.fd);
-	if (metaIt == socketsMeta.end())
-		return;
+void handleCgiPipe(std::vector<pollfd> &sockets,
+                   std::map<int, SocketMeta> &socketsMeta,
+                   size_t &sIdx)
+{
+    pollfd &socket = sockets[sIdx];
 
-	SocketMeta &pipeMeta = metaIt->second;
-	if (!pipeMeta.isCgiPipe)
-		return;
+    std::map<int, SocketMeta>::iterator metaIt = socketsMeta.find(socket.fd);
+    if (metaIt == socketsMeta.end())
+        return;
 
-	std::map<int, struct SocketMeta>::iterator clientIt = socketsMeta.find(pipeMeta.clientFd);
-	SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second;
-	bool finalize = false;
-	bool failed = false;
-	char buf[CGI_READ_BUFFER_SIZE];
-	while (true) {
-		ssize_t bytesRead = read(socket.fd, buf, sizeof(buf));
-		if (bytesRead > 0) {
-			if (clientIt != socketsMeta.end())
-				clientIt->second.responseBuf.append(buf, bytesRead);
-			continue;
-		}
-		if (bytesRead == 0) {
-			finalize = true;
-			break;
-		}
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			break;
-		failed = true;
-		break;
-	}
-	if (!finalize && !failed)
-		return;
+    SocketMeta &pipeMeta = metaIt->second;
+    if (!pipeMeta.isCgiPipe)
+        return;
 
-	int status = 0;
-	waitpid(pipeMeta.cgiPid, &status, WNOHANG);
-	if (clientIt != socketsMeta.end()) {
-		clientIt->second.cgiPipeFd = -1;
-		if (failed) {
-			clientIt->second.responseBuf = http::generateHttpResponse(
-				http::INTERNAL_SERVER_ERROR, !clientIt->second.closeAfterResponse,
-				http::generateErrorPage(sMeta.server, http::INTERNAL_SERVER_ERROR));
-		} else {
-			clientIt->second.responseBuf = http::generateHttpResponse(
-				http::OK, !clientIt->second.closeAfterResponse, clientIt->second.responseBuf);
-		}
-		size_t clientIdx = findSocketIndex(sockets, pipeMeta.clientFd);
-		if (clientIdx < sockets.size())
-			sockets[clientIdx].events = POLLOUT;
-	}
+    std::map<int, SocketMeta>::iterator clientIt =
+        socketsMeta.find(pipeMeta.clientFd);
 
-	closeDelSocket(sockets, sIdx, socketsMeta);
-	--sIdx;
+    SocketMeta &sMeta = metaIt->second;
+
+    if (socket.revents & POLLERR)
+    {
+        if (clientIt != socketsMeta.end())
+        {
+            clientIt->second.cgiPipeFd = -1;
+            clientIt->second.responseBuf = http::generateHttpResponse(
+                http::INTERNAL_SERVER_ERROR,
+                !clientIt->second.closeAfterResponse,
+                http::generateErrorPage(sMeta.server, http::INTERNAL_SERVER_ERROR));
+
+            size_t clientIdx = findSocketIndex(sockets, pipeMeta.clientFd);
+            if (clientIdx < sockets.size())
+                sockets[clientIdx].events = POLLOUT;
+        }
+
+        closeDelSocket(sockets, sIdx, socketsMeta);
+        --sIdx;
+        return;
+    }
+
+    if (socket.revents & POLLIN)
+    {
+        int available = 0;
+
+        if (ioctl(socket.fd, FIONREAD, &available) == 0 && available > 0)
+        {
+            char buf[CGI_READ_BUFFER_SIZE];
+
+            while (available > 0)
+            {
+                ssize_t toRead = available > (int)sizeof(buf)
+                                 ? (ssize_t)sizeof(buf)
+                                 : (ssize_t)available;
+
+                ssize_t n = read(socket.fd, buf, toRead);
+
+                if (n <= 0)
+                    break;
+
+                if (clientIt != socketsMeta.end())
+                    clientIt->second.responseBuf.append(buf, n);
+
+                available -= n;
+            }
+        }
+    }
+
+    if ((socket.revents & POLLHUP))
+    {
+        waitpid(pipeMeta.cgiPid, NULL, WNOHANG);
+
+        if (clientIt != socketsMeta.end())
+        {
+            clientIt->second.cgiPipeFd = -1;
+            clientIt->second.responseBuf = http::generateHttpResponse(
+                http::OK,
+                !clientIt->second.closeAfterResponse,
+                clientIt->second.responseBuf);
+
+            size_t clientIdx = findSocketIndex(sockets, pipeMeta.clientFd);
+            if (clientIdx < sockets.size())
+                sockets[clientIdx].events = POLLOUT;
+        }
+
+        closeDelSocket(sockets, sIdx, socketsMeta);
+        --sIdx;
+    }
 }
 } // namespace
 
