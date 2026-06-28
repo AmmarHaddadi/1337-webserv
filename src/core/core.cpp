@@ -121,7 +121,7 @@ void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerCo
 // till next loop if all good and a response was written it returns 0 so the res is sent
 // @return 1 if should continue
 int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
-			  size_t &sIdx) {
+			  std::map<std::string, std::string> &sessions, size_t &sIdx) {
 	pollfd &socket = sockets[sIdx];
 	SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 
@@ -157,7 +157,7 @@ int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &so
 		http::printHttpRequest(req);
 		sMeta.closeAfterResponse = !req.keepAlive;
 		int clientFd = socket.fd;
-		http::respondToReq(sMeta, req, sockets, socketsMeta, clientFd);
+		http::respondToReq(sMeta, req, sockets, socketsMeta, clientFd, sessions);
 		sockets[sIdx].events = sMeta.cgiPipeFd != -1 ? 0 : POLLOUT;
 	}
 	return 0;

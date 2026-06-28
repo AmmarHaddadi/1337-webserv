@@ -22,7 +22,8 @@ bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta,
 				}
 				if ((st.st_mode & S_IFMT) != S_IFREG) {
 					sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
-															 generateErrorPage(sMeta.server, NOT_FOUND));
+															 generateErrorPage(sMeta.server, NOT_FOUND),
+															 sMeta.RespHeader);
 					closedir(dr);
 					return true;
 				}
@@ -54,7 +55,7 @@ void http::directoryFiles(SocketMeta &sMeta, HttpRequest &req, std::string &syst
 		closedir(dr);
 		Utils::addSlash(req.path);
 		std::string html = generateHttpResponseDirectory(req.path, files);
-		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, html);
+		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, html, sMeta.RespHeader);
 	} else
 		throw std::runtime_error("Runtime error opendir failed");
 }

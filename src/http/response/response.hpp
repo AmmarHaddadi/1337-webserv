@@ -5,11 +5,16 @@
 #include <string>
 #include <sys/stat.h>
 
+#define SESSION_MANAGMENT "/ref-session"
+
 namespace http {
 void respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd> &sockets,
-				  std::map<int, struct SocketMeta> &socketsMeta, int clientFd);
+				  std::map<int, struct SocketMeta> &socketsMeta, int clientFd,
+				  std::map<std::string, std::string> &sessions);
 void respondToReq(SocketMeta &sMeta, const HttpRequest &req);
 void getFile(SocketMeta &sMeta, const std::string &systemPath, const HttpRequest &req);
+
+std::string generateSessionID();
 
 // helpers
 std::string generateHtmlPage(const std::string &title, const std::string &body);

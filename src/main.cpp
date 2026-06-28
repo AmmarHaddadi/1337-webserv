@@ -109,6 +109,7 @@ void handleCgiPipe(std::vector<pollfd> &sockets,
 } // namespace
 
 int main(int ac, char **av) {
+	srand(time(NULL));
 	if (ac > 2) {
 		std::cerr << "Error: only supported param is an optional <path/to/file.conf> \n";
 		return 1;
@@ -143,6 +144,7 @@ int main(int ac, char **av) {
 	}
 
 	std::map<int, struct SocketMeta> socketsMeta;
+	std::map<std::string, std::string> sessions;
 
 	while (true) {
 		if (poll(&sockets[0], sockets.size(), -1) == -1) {
@@ -168,7 +170,7 @@ int main(int ac, char **av) {
 			}
 
 			if ((socket.revents & POLLIN) != 0) {
-				if (handleReq(sockets, socketsMeta, sIdx) == 1)
+				if (handleReq(sockets, socketsMeta, sessions, sIdx) == 1)
 					continue;
 			}
 
