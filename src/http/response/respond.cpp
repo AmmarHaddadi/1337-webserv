@@ -30,17 +30,45 @@ std::string resolveSystemPath(const std::string &routePath, const std::string &r
 
 // NOTE try to move raw response building into sub funcs and keep this highlevel
 void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd> &sockets,
-						std::map<int, struct SocketMeta> &socketsMeta, int clientFd) {
+						std::map<int, struct SocketMeta> &socketsMeta, int clientFd,
+						std::map<std::string, std::string> &sessions) {
+
+	sMeta.RespHeader.clear();
+	std::string sessionID;
+	std::map<std::string, std::string>::iterator it = req.cookies.find("session");
+	if (it == req.cookies.end() || sessions.find(it->second) == sessions.end() ||
+		req.path == SESSION_MANAGMENT) {
+		// first case: client not have session id
+		// second case: client send a session id not valid
+		// last case: refresh session for session managment
+		// TODO check sessionID is not consumed/duplicate
+		while (true) {
+			sessionID = generateSessionID();
+			if (sessions.find(sessionID) == sessions.end())
+				break;
+		}
+		sessions[sessionID] = "";
+		sMeta.RespHeader["Set-Cookie"] = "session=" + sessionID;
+		if (req.path == SESSION_MANAGMENT) {
+			req.path = "/tests/html/session.html";
+		}
+	} else
+		sessionID = it->second;
+
+	sMeta.RespHeader["your-session-is"] = sessionID;
+
 	if (req.version != HTTP_VER) {
 		sMeta.responseBuf =
 			generateHttpResponse(HTTP_VERSION_NOT_SUPPORTED, req.keepAlive,
-								 generateErrorPage(sMeta.server, HTTP_VERSION_NOT_SUPPORTED));
+								 generateErrorPage(sMeta.server, HTTP_VERSION_NOT_SUPPORTED),
+								 sMeta.RespHeader);
 		return;
 	}
 
 	if (req.method == INVALID) {
 		sMeta.responseBuf = generateHttpResponse(
-			METHOD_NOT_ALLOWED, req.keepAlive, generateErrorPage(sMeta.server, METHOD_NOT_ALLOWED));
+			METHOD_NOT_ALLOWED, req.keepAlive, generateErrorPage(sMeta.server, METHOD_NOT_ALLOWED),
+			sMeta.RespHeader);
 		return;
 	}
 
@@ -55,23 +83,23 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 
 	if (rc == NULL) {
 		sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
-												 generateErrorPage(sMeta.server, NOT_FOUND));
+												 generateErrorPage(sMeta.server, NOT_FOUND),
+												 sMeta.RespHeader);
 		return;
 	}
 
 	if (std::find(rc->allowedMethods.begin(), rc->allowedMethods.end(),
 				  Utils::httpMethodToString(req.method)) == rc->allowedMethods.end()) {
 		sMeta.responseBuf = generateHttpResponse(
-			METHOD_NOT_ALLOWED, req.keepAlive, generateErrorPage(sMeta.server, METHOD_NOT_ALLOWED));
+			METHOD_NOT_ALLOWED, req.keepAlive, generateErrorPage(sMeta.server, METHOD_NOT_ALLOWED),
+			sMeta.RespHeader);
 		return;
 	}
-
 	std::string systemPath = resolveSystemPath(rc->path, rc->root, req.path);
 
 	if (rc->hasRedirect) {
-		std::map<std::string, std::string> headers;
-		headers["Location"] = rc->redirectLocation;
-		sMeta.responseBuf = generateHttpResponse(TEMPORARY_REDIRECT, req.keepAlive, "", headers);
+		sMeta.RespHeader["Location"] = rc->redirectLocation;
+		sMeta.responseBuf = generateHttpResponse(TEMPORARY_REDIRECT, req.keepAlive, "", sMeta.RespHeader);
 		return;
 	}
 
@@ -85,7 +113,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 		exist = false;
 		if (req.method != http::POST) {
 			sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
-													 generateErrorPage(sMeta.server, NOT_FOUND));
+													 generateErrorPage(sMeta.server, NOT_FOUND),
+													 sMeta.RespHeader);
 			return;
 		}
 	}
@@ -106,7 +135,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 			} catch (const std::exception &e) {
 				sMeta.responseBuf =
 					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
+										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
+										 sMeta.RespHeader);
 				return;
 			}
 			if (rc->fileBrowser) {
@@ -117,7 +147,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 				} catch (const std::exception &e) {
 					sMeta.responseBuf = generateHttpResponse(
 						INTERNAL_SERVER_ERROR, req.keepAlive,
-						generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
+						generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
+						sMeta.RespHeader);
 					return;
 				}
 			}
@@ -135,7 +166,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 			if (unlink((systemPath).c_str()) != 0) {
 				sMeta.responseBuf =
 					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
+										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
+										 sMeta.RespHeader);
 				return;
 			}
 		}
@@ -143,18 +175,20 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 			if (rmdir((systemPath).c_str()) != 0) {
 				sMeta.responseBuf =
 					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR));
+										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
+										 sMeta.RespHeader);
 				return;
 			}
 		}
 		// the server.root + req.path can remain here for better UX
-		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, req.path + ": is removed");
+		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, req.path + ": is removed", sMeta.RespHeader);
 		return;
 	}
 
 	// fallback
 	sMeta.responseBuf =
-		generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND));
+		generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND),
+							 sMeta.RespHeader);
 }
 
 std::string http::generateHtmlPage(const std::string &title, const std::string &body) {
@@ -227,8 +261,9 @@ std::string http::generateHttpResponse(HTTPCode code, bool keepAlive, const std:
 
 	// headers
 	std::map<std::string, std::string>::const_iterator it = headers.begin();
-	for (; it != headers.end(); it++)
+	for (; it != headers.end(); it++) {
 		oss << it->first << ": " << it->second << "\r\n";
+	}
 	if (headers.find("Content-Length") == headers.end())
 		oss << "Content-Length: " << body.size() << "\r\n";
 	oss << "\r\n";

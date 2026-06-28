@@ -12,12 +12,12 @@ void http::getFile(SocketMeta &sMeta, const std::string &systemPath, const HttpR
 	std::ifstream file(systemPath.c_str());
 	if (!file.is_open()) {
 		sMeta.responseBuf =
-			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND));
+			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND),
+				sMeta.RespHeader);
 	} else {
-		std::map<std::string, std::string> hdr;
-		hdr["Content-type"] = Utils::getMimeType(systemPath);
+		sMeta.RespHeader["Content-Type"] = Utils::getMimeType(systemPath);
 		std::stringstream buffer;
 		buffer << file.rdbuf();
-		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, buffer.str(), hdr);
+		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, buffer.str(), sMeta.RespHeader);
 	}
 }

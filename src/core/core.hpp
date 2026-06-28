@@ -30,6 +30,7 @@ struct SocketMeta {
 	int cgiPipeFd;
 	int clientFd;
 	pid_t cgiPid;
+	std::map<std::string, std::string> RespHeader;
 };
 
 // functions
@@ -41,6 +42,6 @@ void closeDelSocket(std::vector<pollfd> &sockets, size_t sIdx,
 void acceptNewClients(std::vector<pollfd> &sockets, std::vector<Config::ServerConfig> &servers,
 					  std::map<int, struct SocketMeta> &socketsMeta);
 int handleReq(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
-			  size_t &sIdx);
+			  std::map<std::string, std::string> &sessions, size_t &sIdx);
 void handleRes(std::vector<pollfd> &sockets, std::map<int, struct SocketMeta> &socketsMeta,
 			   size_t &sIdx);

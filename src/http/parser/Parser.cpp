@@ -107,6 +107,7 @@ HttpRequest http::parseHttp(std::string &reqBuf, size_t maxBodySize) {
 		return req;
 
 	parseHeaders(headersToParse, req);
+	parseCookies(req);
 	if (req.status == BAD_REQ)
 		return req;
 
