@@ -49,6 +49,9 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 		}
 		sessions[sessionID] = "";
 		sMeta.RespHeader["Set-Cookie"] = "session=" + sessionID;
+		if (req.path == SESSION_MANAGMENT) {
+			req.path = "/tests/html/session.html";
+		}
 	} else
 		sessionID = it->second;
 
@@ -92,7 +95,6 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 			sMeta.RespHeader);
 		return;
 	}
-
 	std::string systemPath = resolveSystemPath(rc->path, rc->root, req.path);
 
 	if (rc->hasRedirect) {
