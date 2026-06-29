@@ -73,7 +73,7 @@ std::string Cgi::findRunner() const {
 
 pid_t Cgi::executeCGI(const std::string &realSysPath, int &outReadFd, int &inWriteFd) {
 	std::string runnerScript = findRunner();
-	std::string fixPath = realSysPath; 
+	std::string fixPath = realSysPath;
 	std::vector<std::string> helpBuildEnvp = buildEnvp();
 	char *argv[] = {
 		const_cast<char *>(runnerScript.c_str()),

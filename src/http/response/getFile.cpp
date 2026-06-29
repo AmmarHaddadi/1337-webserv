@@ -11,9 +11,8 @@ using namespace http;
 void http::getFile(SocketMeta &sMeta, const std::string &systemPath, const HttpRequest &req) {
 	std::ifstream file(systemPath.c_str());
 	if (!file.is_open()) {
-		sMeta.responseBuf =
-			generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND),
-				sMeta.RespHeader);
+		sMeta.responseBuf = generateHttpResponse(
+			NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND), sMeta.RespHeader);
 	} else {
 		sMeta.RespHeader["Content-Type"] = Utils::getMimeType(systemPath);
 		std::stringstream buffer;
