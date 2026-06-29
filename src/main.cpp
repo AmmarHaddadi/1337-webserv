@@ -21,10 +21,9 @@ size_t findSocketIndex(std::vector<pollfd> &sockets, int fd) {
 
 void handleCgiPipe(std::vector<pollfd> &sockets,
                    std::map<int, SocketMeta> &socketsMeta,
-                   size_t &sIdx, std::map<std::string, std::string> &sessions)
+                   size_t &sIdx)
 {
     pollfd &socket = sockets[sIdx];
-	(void)sessions;
     std::map<int, SocketMeta>::iterator metaIt = socketsMeta.find(socket.fd);
     if (metaIt == socketsMeta.end())
         return;
@@ -158,7 +157,7 @@ int main(int ac, char **av) {
 			SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 
 			if (sMeta.isCgiPipe) {
-				handleCgiPipe(sockets, socketsMeta, sIdx, sessions);
+				handleCgiPipe(sockets, socketsMeta, sIdx);
 				continue;
 			}
 
