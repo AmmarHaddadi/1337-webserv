@@ -48,7 +48,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 				break;
 		}
 		sessions[sessionID] = "";
-		sMeta.RespHeader["Set-Cookie"] = "session=" + sessionID;
+		sMeta.RespHeader["Set-Cookie"] = "session=" + sessionID + "; Path=/";
 		if (req.path == SESSION_MANAGMENT) {
 			req.path = "/tests/html/session.html";
 		}
