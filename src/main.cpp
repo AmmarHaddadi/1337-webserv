@@ -21,10 +21,10 @@ size_t findSocketIndex(std::vector<pollfd> &sockets, int fd) {
 
 void handleCgiPipe(std::vector<pollfd> &sockets,
                    std::map<int, SocketMeta> &socketsMeta,
-                   size_t &sIdx)
+                   size_t &sIdx, std::map<std::string, std::string> &sessions)
 {
     pollfd &socket = sockets[sIdx];
-
+	(void)sessions;
     std::map<int, SocketMeta>::iterator metaIt = socketsMeta.find(socket.fd);
     if (metaIt == socketsMeta.end())
         return;
@@ -37,7 +37,6 @@ void handleCgiPipe(std::vector<pollfd> &sockets,
         socketsMeta.find(pipeMeta.clientFd);
 
     SocketMeta &sMeta = metaIt->second;
-
     if (socket.revents & POLLERR)
     {
         if (clientIt != socketsMeta.end())
@@ -88,14 +87,14 @@ void handleCgiPipe(std::vector<pollfd> &sockets,
     if ((socket.revents & POLLHUP))
     {
         waitpid(pipeMeta.cgiPid, NULL, WNOHANG);
-
         if (clientIt != socketsMeta.end())
         {
             clientIt->second.cgiPipeFd = -1;
             clientIt->second.responseBuf = http::generateHttpResponse(
                 http::OK,
                 !clientIt->second.closeAfterResponse,
-                clientIt->second.responseBuf);
+                clientIt->second.responseBuf,
+				clientIt->second.RespHeader);
 
             size_t clientIdx = findSocketIndex(sockets, pipeMeta.clientFd);
             if (clientIdx < sockets.size())
@@ -159,7 +158,7 @@ int main(int ac, char **av) {
 			SocketMeta &sMeta = (socketsMeta.find(socket.fd))->second; // shouldn't fail
 
 			if (sMeta.isCgiPipe) {
-				handleCgiPipe(sockets, socketsMeta, sIdx);
+				handleCgiPipe(sockets, socketsMeta, sIdx, sessions);
 				continue;
 			}
 
