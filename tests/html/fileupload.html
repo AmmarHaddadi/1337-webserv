@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webserv File Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 50px auto;
+            max-width: 500px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Upload Test Form</h2>
+    
+    <form action="/upload/uploaded" method="POST" enctype="multipart/form-data">
+        
+        <div class="form-group">
+            <label for="uploader">Your Name:</label>
+            <input type="text" id="uploader" name="uploader" placeholder="Enter your name">
+        </div>
+
+        <div class="form-group">
+            <label for="fileInput">Choose File to Upload:</label>
+            <input type="file" id="fileInput" name="file" required>
+        </div>
+
+        <button type="submit">Submit Upload</button>
+    </form>
+
+</body>
+</html>

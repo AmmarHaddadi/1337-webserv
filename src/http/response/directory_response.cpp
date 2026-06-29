@@ -5,7 +5,8 @@
 
 using namespace http;
 
-bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req, std::string &resolvedPath) {
+bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta, HttpRequest &req,
+					   std::string &resolvedPath) {
 	std::string fullPath = resolvedPath;
 	Utils::addSlash(fullPath);
 	const char *pathDir = fullPath.c_str();
@@ -21,9 +22,9 @@ bool http::defaultFile(Config::ServerConfig::RouteConfig &rc, SocketMeta &sMeta,
 					throw std::runtime_error("Runtime error: bad file");
 				}
 				if ((st.st_mode & S_IFMT) != S_IFREG) {
-					sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
-															 generateErrorPage(sMeta.server, NOT_FOUND),
-															 sMeta.RespHeader);
+					sMeta.responseBuf = generateHttpResponse(
+						NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND),
+						sMeta.RespHeader);
 					closedir(dr);
 					return true;
 				}

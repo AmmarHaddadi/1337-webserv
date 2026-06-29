@@ -58,10 +58,9 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	sMeta.RespHeader["your-session-is"] = sessionID;
 
 	if (req.version != HTTP_VER) {
-		sMeta.responseBuf =
-			generateHttpResponse(HTTP_VERSION_NOT_SUPPORTED, req.keepAlive,
-								 generateErrorPage(sMeta.server, HTTP_VERSION_NOT_SUPPORTED),
-								 sMeta.RespHeader);
+		sMeta.responseBuf = generateHttpResponse(
+			HTTP_VERSION_NOT_SUPPORTED, req.keepAlive,
+			generateErrorPage(sMeta.server, HTTP_VERSION_NOT_SUPPORTED), sMeta.RespHeader);
 		return;
 	}
 
@@ -82,9 +81,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	}
 
 	if (rc == NULL) {
-		sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
-												 generateErrorPage(sMeta.server, NOT_FOUND),
-												 sMeta.RespHeader);
+		sMeta.responseBuf = generateHttpResponse(
+			NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND), sMeta.RespHeader);
 		return;
 	}
 
@@ -99,7 +97,8 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 
 	if (rc->hasRedirect) {
 		sMeta.RespHeader["Location"] = rc->redirectLocation;
-		sMeta.responseBuf = generateHttpResponse(TEMPORARY_REDIRECT, req.keepAlive, "", sMeta.RespHeader);
+		sMeta.responseBuf =
+			generateHttpResponse(TEMPORARY_REDIRECT, req.keepAlive, "", sMeta.RespHeader);
 		return;
 	}
 
@@ -112,9 +111,9 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	if (stat((systemPath).c_str(), &st) != 0) {
 		exist = false;
 		if (req.method != http::POST) {
-			sMeta.responseBuf = generateHttpResponse(NOT_FOUND, req.keepAlive,
-													 generateErrorPage(sMeta.server, NOT_FOUND),
-													 sMeta.RespHeader);
+			sMeta.responseBuf =
+				generateHttpResponse(NOT_FOUND, req.keepAlive,
+									 generateErrorPage(sMeta.server, NOT_FOUND), sMeta.RespHeader);
 			return;
 		}
 	}
@@ -133,10 +132,9 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 				if (defaultFile(*rc, sMeta, req, systemPath))
 					return;
 			} catch (const std::exception &e) {
-				sMeta.responseBuf =
-					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
-										 sMeta.RespHeader);
+				sMeta.responseBuf = generateHttpResponse(
+					INTERNAL_SERVER_ERROR, req.keepAlive,
+					generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR), sMeta.RespHeader);
 				return;
 			}
 			if (rc->fileBrowser) {
@@ -147,8 +145,7 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 				} catch (const std::exception &e) {
 					sMeta.responseBuf = generateHttpResponse(
 						INTERNAL_SERVER_ERROR, req.keepAlive,
-						generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
-						sMeta.RespHeader);
+						generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR), sMeta.RespHeader);
 					return;
 				}
 			}
@@ -164,31 +161,29 @@ void http::respondToReq(SocketMeta &sMeta, HttpRequest &req, std::vector<pollfd>
 	else if (req.method == http::DELETE) {
 		if ((st.st_mode & S_IFMT) == S_IFREG) {
 			if (unlink((systemPath).c_str()) != 0) {
-				sMeta.responseBuf =
-					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
-										 sMeta.RespHeader);
+				sMeta.responseBuf = generateHttpResponse(
+					INTERNAL_SERVER_ERROR, req.keepAlive,
+					generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR), sMeta.RespHeader);
 				return;
 			}
 		}
 		if ((st.st_mode & S_IFMT) == S_IFDIR) {
 			if (rmdir((systemPath).c_str()) != 0) {
-				sMeta.responseBuf =
-					generateHttpResponse(INTERNAL_SERVER_ERROR, req.keepAlive,
-										 generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR),
-										 sMeta.RespHeader);
+				sMeta.responseBuf = generateHttpResponse(
+					INTERNAL_SERVER_ERROR, req.keepAlive,
+					generateErrorPage(sMeta.server, INTERNAL_SERVER_ERROR), sMeta.RespHeader);
 				return;
 			}
 		}
 		// the server.root + req.path can remain here for better UX
-		sMeta.responseBuf = generateHttpResponse(OK, req.keepAlive, req.path + ": is removed", sMeta.RespHeader);
+		sMeta.responseBuf =
+			generateHttpResponse(OK, req.keepAlive, req.path + ": is removed", sMeta.RespHeader);
 		return;
 	}
 
 	// fallback
-	sMeta.responseBuf =
-		generateHttpResponse(NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND),
-							 sMeta.RespHeader);
+	sMeta.responseBuf = generateHttpResponse(
+		NOT_FOUND, req.keepAlive, generateErrorPage(sMeta.server, NOT_FOUND), sMeta.RespHeader);
 }
 
 std::string http::generateHtmlPage(const std::string &title, const std::string &body) {
@@ -205,7 +200,8 @@ std::string http::generateErrorPage(Config::ServerConfig &server, HTTPCode code)
 	if (it != server.errorPages.end()) {
 		std::ifstream file((server.root + "/" + it->second).c_str());
 		if (!file.is_open()) {
-			std::stringstream oss(INTERNAL_SERVER_ERROR);
+			std::stringstream oss;
+			oss << INTERNAL_SERVER_ERROR;
 			std::string body = "<h1>" + oss.str() + " : " + "INTERNAL_SERVER_ERROR" + "</h1>";
 			return generateHtmlPage("INTERNAL_SERVER_ERROR", body);
 		} else {

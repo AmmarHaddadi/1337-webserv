@@ -26,6 +26,12 @@ format:
 	@echo $(SRC) $(HDR) | xargs clang-format --dry-run --Werror
 	@printf "\033[32mFormatting is clean!\033[0m\n"
 
+# formats all source and header files in src/
+fix-format:
+	@printf "\033[33mFormatting source files...\033[0m\n"
+	@echo $(SRC) $(HDR) | xargs clang-format -i
+	@printf "\033[32mFormatting complete!\033[0m\n"
+
 # We use run-clang-tidy for speed.
 lint:
 	@printf "$(YELLOW)Linting...$(RESET) "
@@ -44,4 +50,4 @@ lint:
 # Check everything (Style + Logic)
 check: format lint
 
-.PHONY: all clean fclean re format lint check
+.PHONY: all clean fclean re format fix-format lint check
