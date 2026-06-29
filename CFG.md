@@ -163,8 +163,8 @@ max_body_sz <kilobytes>
 ```
 
 - **Required:** no  
-- **Default:** `1024` (KB)
-- Maximum request body size in **KB**.
+- **Default:** `1024` (Bytes)
+- Maximum request body size in **Bytes**.
 - Value must be a positive integer (must fit in `size_t`).
 
 Notes:

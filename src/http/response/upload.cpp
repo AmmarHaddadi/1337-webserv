@@ -1,9 +1,9 @@
 #include "../../cfg/cfg.hpp"
 #include "response.hpp"
+#include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <sstream>
-#include <cctype>
-#include <algorithm>
 
 using namespace http;
 
@@ -40,7 +40,6 @@ static std::string trim(const std::string &str) {
 	return str.substr(start, end - start + 1);
 }
 
-// Extracts the boundary string from the request headers if the Content-Type is multipart/form-data.
 static std::string getBoundary(const HttpRequest &req) {
 	for (std::map<std::string, std::string>::const_iterator it = req.headers.begin();
 		 it != req.headers.end(); ++it) {
@@ -52,24 +51,25 @@ static std::string getBoundary(const HttpRequest &req) {
 			std::string val = it->second;
 			std::string lowerVal = val;
 			for (size_t j = 0; j < lowerVal.size(); ++j) {
-				lowerVal[j] = static_cast<char>(std::tolower(static_cast<unsigned char>(lowerVal[j])));
+				lowerVal[j] =
+					static_cast<char>(std::tolower(static_cast<unsigned char>(lowerVal[j])));
 			}
-			// Verify that the content-type actually specifies multipart/form-data
 			if (lowerVal.find("multipart/form-data") == std::string::npos) {
 				continue;
 			}
 			size_t pos = val.find("boundary=");
 			if (pos != std::string::npos) {
 				std::string boundary = val.substr(pos + 9);
-				// Truncate any parameters that might appear after the boundary string (separated by semicolon)
+				// remove parameters that might exist after the boundary
 				size_t semi = boundary.find(';');
 				if (semi != std::string::npos) {
 					boundary = boundary.substr(0, semi);
 				}
-				// Trim any whitespaces, tabs, or newlines from both sides of the boundary
 				boundary = trim(boundary);
 				// Strip surrounding quotes if the client wrapped the boundary in quotes
-				if (boundary.size() >= 2 && boundary[0] == '"' && boundary[boundary.size() - 1] == '"') {
+				// chatgpt said this is good to add
+				if (boundary.size() >= 2 && boundary[0] == '"' &&
+					boundary[boundary.size() - 1] == '"') {
 					boundary = boundary.substr(1, boundary.size() - 2);
 				}
 				return boundary;
@@ -79,36 +79,37 @@ static std::string getBoundary(const HttpRequest &req) {
 	return "";
 }
 
-// Parses the multipart/form-data body to locate and extract the uploaded file part.
+// HINT each part of a multipart/form-data body is separated by a boundary string, 
+//      and each part contains headers followed by the actual content
+// extracts the file data from a multipart/form-data body using the specified boundary
 static std::string parseMultipartBody(const std::string &body, const std::string &boundary) {
 	std::string divider = "--" + boundary;
 	size_t pos = body.find(divider);
 	if (pos == std::string::npos)
 		return body;
 
-	// Loop through all parts in the multipart body to find the file part (which has a filename parameter).
 	while (pos != std::string::npos) {
+	        // find past previous provider
 		size_t nextPos = body.find(divider, pos + divider.length());
 		if (nextPos == std::string::npos)
 			break;
 
 		size_t partStart = pos + divider.length();
-		// Skip the Carriage Return (\r) and Line Feed (\n) characters that follow the
-		// boundary line. According to HTTP multipart specs, a boundary is separated
-		// from its part headers by a CRLF. If not skipped, it corrupts header parsing.
-		if (partStart < body.size() && body[partStart] == '\r') partStart++;
-		if (partStart < body.size() && body[partStart] == '\n') partStart++;
+		if (partStart < body.size() && body[partStart] == '\r')
+			partStart++;
+		if (partStart < body.size() && body[partStart] == '\n')
+			partStart++;
 
-		// Locate the blank line delimiter (\r\n\r\n) which separates part headers from the part content.
 		size_t headersEnd = body.find("\r\n\r\n", partStart);
 		if (headersEnd != std::string::npos && headersEnd < nextPos) {
 			std::string headers = body.substr(partStart, headersEnd - partStart);
-			// We look for the part that contains "filename=" to identify the uploaded file part.
 			if (headers.find("filename=") != std::string::npos) {
 				size_t contentStart = headersEnd + 4;
 				size_t contentEnd = nextPos;
-				// Trim the trailing CRLF (which is part of the boundary separator) from the end of the file data.
-				if (contentEnd >= 2 && body[contentEnd - 2] == '\r' && body[contentEnd - 1] == '\n') {
+				// Trim the trailing CRLF (which is part of the boundary separator) from the end of
+				// the file data.
+				if (contentEnd >= 2 && body[contentEnd - 2] == '\r' &&
+					body[contentEnd - 1] == '\n') {
 					contentEnd -= 2;
 				} else if (contentEnd >= 1 && body[contentEnd - 1] == '\n') {
 					contentEnd -= 1;
@@ -121,19 +122,19 @@ static std::string parseMultipartBody(const std::string &body, const std::string
 		pos = nextPos;
 	}
 
-	// Fallback mechanism: if no part specifies "filename=", default to extracting the first part's body.
+	// Fallback if no part specifies "filename=" extract the first part's body,wakha wa9ila an7tajoh kamel wlkn hanya we shouldn't find ourselves here anyway
 	pos = body.find(divider);
 	size_t partStart = pos + divider.length();
-	// Skip the CRLF following the boundary separator.
-	if (partStart < body.size() && body[partStart] == '\r') partStart++;
-	if (partStart < body.size() && body[partStart] == '\n') partStart++;
+	if (partStart < body.size() && body[partStart] == '\r')
+		partStart++;
+	if (partStart < body.size() && body[partStart] == '\n')
+		partStart++;
 	size_t headersEnd = body.find("\r\n\r\n", partStart);
 	if (headersEnd != std::string::npos) {
 		size_t nextPos = body.find(divider, headersEnd);
 		if (nextPos != std::string::npos) {
 			size_t contentStart = headersEnd + 4;
 			size_t contentEnd = nextPos;
-			// Trim the trailing CRLF preceding the next boundary separator.
 			if (contentEnd >= 2 && body[contentEnd - 2] == '\r' && body[contentEnd - 1] == '\n') {
 				contentEnd -= 2;
 			} else if (contentEnd >= 1 && body[contentEnd - 1] == '\n') {

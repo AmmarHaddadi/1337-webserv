@@ -1,0 +1,28 @@
+:8080 {
+        root /Users/ahaddadi/cursus-repos/1337-webserv
+        max_body_sz 5242880 # 5mb 
+        # error_page 404 a.html
+
+        handle / {
+                file_server browse
+                methods GET POST DELETE
+                # cgi py /usr/bin/python3
+        }
+
+        handle /yy {
+                root /tmp
+                file_server browse
+                methods GET POST DELETE
+                # cgi py /usr/bin/python3
+        }
+
+        handle /up {
+                root /tmp/up
+                upload_enabled
+        }
+
+        # handle /redir {
+        #         redirect 307 /tmp
+        #         methods GET POST DELETE
+        # }
+}
