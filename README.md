@@ -24,7 +24,7 @@ The program relies on this configuration file (provided as an argument or found 
 * **HTTP Protocol:** The HTTP 1.0 RFC was used as a primary reference point to understand the protocol's intricacies, client-server communication, and status codes.
 
 
-* **Reference & Testing:** NGINX was used to compare headers and answer behaviours, while `telnet` and standard web browsers were used for testing.
+* **Reference & Testing:** NGINX was used to compare headers and answer behaviours, while standard web browsers were used for testing.
 
 
-* **AI Usage:** AI tools were utilized strictly to reduce repetitive tasks and assist in exploring technical concepts. All AI-generated content was critically assessed, systematically checked, and tested. Peer review was systematically sought to ensure full understanding of the generated logic and to prevent blind spots before integration.
+* **AI Usage:** AI tools were utilized to reduce repetitive tasks and assist in exploring technical concept.  Peer review was systematically done to ensure full understanding of the generated logic and to prevent bugs before integration.
