@@ -79,7 +79,7 @@ static std::string getBoundary(const HttpRequest &req) {
 	return "";
 }
 
-// HINT each part of a multipart/form-data body is separated by a boundary string, 
+// HINT each part of a multipart/form-data body is separated by a boundary string,
 //      and each part contains headers followed by the actual content
 // extracts the file data from a multipart/form-data body using the specified boundary
 static std::string parseMultipartBody(const std::string &body, const std::string &boundary) {
@@ -89,7 +89,7 @@ static std::string parseMultipartBody(const std::string &body, const std::string
 		return body;
 
 	while (pos != std::string::npos) {
-	        // find past previous provider
+		// find past previous provider
 		size_t nextPos = body.find(divider, pos + divider.length());
 		if (nextPos == std::string::npos)
 			break;
@@ -122,7 +122,8 @@ static std::string parseMultipartBody(const std::string &body, const std::string
 		pos = nextPos;
 	}
 
-	// Fallback if no part specifies "filename=" extract the first part's body,wakha wa9ila an7tajoh kamel wlkn hanya we shouldn't find ourselves here anyway
+	// Fallback if no part specifies "filename=" extract the first part's body,wakha wa9ila an7tajoh
+	// kamel wlkn hanya we shouldn't find ourselves here anyway
 	pos = body.find(divider);
 	size_t partStart = pos + divider.length();
 	if (partStart < body.size() && body[partStart] == '\r')
